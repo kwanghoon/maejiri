@@ -61,6 +61,10 @@
 
   jsubstty    : Type   ;;
   jsubstcty   : Type   ;;
+  jsubstfor   : Type   ;;
+  jsubstval   : Type   ;;
+  jsubstexp   : Type   ;;
+
   junfold     : Type   ;;
   junfoldcty  : Type   ;;
 
@@ -94,8 +98,8 @@
   pair  : val -> val -> val ;;      |  (M,N)
   const : h -> val -> val   ;;      |  h M
 
-  true_val  : const inl unit ;; inl unit
-  false_val : const inr unit ;; inr unit
+  true_val  : const inl unit ;; inl unit   [Q] The notation : should be 
+  false_val : const inr unit ;; inr unit   something like `def'.
 
   ;; Expression    
   lift  : val -> exp                         ;; A,B ::= M
@@ -135,8 +139,8 @@
   all   : nat -> for -> for ;;    |  forall x.C
   exist : nat -> for -> for ;;    |  exist x.C
 
-  true  : for               ;;    |  True
-  iff   : for -> for -> for ;;    |  C <-> C'
+  true  : for               ;;    |  True     [Q] Is this enough to introduce 
+  iff   : for -> for -> for ;;    |  C <-> C'     the trueth value, true?
 
   ;; Envorinment    
   empenv : env              ;; E ::= \pi
@@ -814,7 +818,77 @@
   hasty    : env -> val -> ty -> jhasty   ;; E |- M : T
   hascty   : env -> exp -> cty -> jhascty ;; E |- A : F
 
-  sequent  : for -> for -> jsequent       ;; C |- C'  *** NOT IMPLEMENTED
+  sequent  : for -> for -> jsequent       ;; C |- C'
+
+  andi : 
+    /\p:for./\q:for. pf p -> pf q -> pf (and p q)
+
+  ande1 : 
+    /\p:for./\q:for. pf (and p q) -> pf p
+
+  ande2 : 
+    /\p:for./\q:for. pf (and p q) -> pf q
+
+  ori1 :
+    /\p:for./\q:for. pf p -> pf (or p q)
+
+  ori2 :
+    /\p:for./\q:for. pf q -> pf (or p q)
+
+  ore :
+    /\p:for./\q:for./\r:for.
+      (pf p -> pf r) ->
+      (pf q -> pf r) ->
+      pf r
+
+  impi : /\p:for./\q:for. (pf p -> pf q) -> pf (imp p q)
+
+  impe : /\p:for./\q:for. pf p -> pf (imp p q) -> pf q
+
+  noti : /\p:for. (pf p -> pf (not true)) -> pf (not p)
+
+  note : /\p:for. pf p -> pf (not p) -> pf (not true)
+
+  falsee : /\p:for. pf (not true) -> pf p
+
+  notnote : /\p:for. pf (not (not p)) -> pf p
+
+  equi : /\m:val. pf (equ m m)
+
+  eque : /\m1:val./\m2:val./\x:nat.
+          /\p:for./\q:for./\r:for.
+           pf (equ m1 m2) -> 
+           pf (substfor x m1 p q) ->
+           pf q ->
+           pf (substfor x m2 p r) ->
+           pf r
+
+  alli : /\x:nat./\x0:nat./\p:for./\q:for./\set1:set.
+           pf (fv_for p set1) ->              ;; [Q] Is this enough to show
+           pf (notxin x0 set1) ->             ;;     x0 is fresh?
+           pf (substfor x (var x0) p q) ->
+           pf q ->
+           pf (all x p)
+
+  alle : /\x:nat./\p:for./\q:for./\m:val.
+           pf (all x p) ->
+           pf (substfor x m p q) ->
+           pf q
+
+  existi : /\x:nat./\p:for./\m:val.
+            /\q:for.
+             pf (substfor x m p q) ->
+             pf q ->
+             pf (exist x p)
+
+  existe : /\x:nat./\x0:for./\p:for./\q:for./\r:for.
+            /\set1:set.
+             pf (exist x p) ->
+             pf (fv_for p set1) ->             ;; [Q] Is this enough to show
+             pf (notxin x0 set1) ->            ;;     x0 is fresh?
+             pf (substfor x (var x0) p q) ->
+             (pf q -> pf r) ->
+             pf r
 
   augmentcty : for -> ty -> cty -> cty -> jaugmentcty   ;; C ~T~> F => F
 
@@ -963,6 +1037,215 @@
         pf (substcty n val1 (tri s1 for1 x1 ty1 s2 for2)
                             (tri s1 for1 x1 ty2 s2 for2))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Substitution for Formula
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+  substfor : nat -> val -> for -> for -> jsubstfor
+
+  substfor_equ :
+     /\x:nat./\m:val./\m1:val./\m2:val.
+      /\m3:val./\m4:val.
+       pf (substval x m m1 m3) ->
+       pf (substval x m m2 m4) ->
+       pf (substval x m (equ m1 m2) (equ m3 m4))
+
+  substfor_not : 
+     /\x:nat./\m:val./\m1:val.
+      /\m2:val.
+       pf (substval x m m1 m2) ->
+       pf (substval x m (not m1) (not m2))
+
+  substfor_and :
+     /\x:nat./\m:val./\m1:val./\m2:val.
+      /\m3:val./\m4:val.
+       pf (substval x m m1 m3) ->
+       pf (substval x m m2 m4) ->
+       pf (substval x m (and m1 m2) (and m3 m4))
+
+  substfor_or :
+     /\x:nat./\m:val./\m1:val./\m2:val.
+      /\m3:val./\m4:val.
+       pf (substval x m m1 m3) ->
+       pf (substval x m m2 m4) ->
+       pf (substval x m (or m1 m2) (or m3 m4))
+     
+  substfor_imp :
+     /\x:nat./\m:val./\m1:val./\m2:val.
+      /\m3:val./\m4:val.
+       pf (substval x m m1 m3) ->
+       pf (substval x m m2 m4) ->
+       pf (substval x m (imp m1 m2) (imp m3 m4))
+
+  substfor_all_eq : 
+     /\x:nat./\m:val.
+      /\x1:nat./\p:for.
+       pf (eq_nat x x1) ->
+       pf (substfor x m (all x1 p) (all x1 p))
+
+  substfor_all_neq :
+     /\x:nat./\m:val./\p:for.
+      /\x1:nat./\q:for.
+       pf (neq_nat x x1) ->
+       pf (substfor x m p q) ->
+       pf (substfor x m (all x1 p) (all x1 q))
+
+  substfor_exist_eq :
+     /\x:nat./\m:val.
+      /\x1:nat./\p:for.
+       pf (eq_nat x x1) ->
+       pf (substfor x m (exist x1 p) (exist x1 p))
+
+  substfor_exist_neq :
+     /\x:nat./\m:val./\p:for.
+      /\x1:nat./\q:for.
+       pf (neq_nat x x1) ->
+       pf (substfor x m p q) ->
+       pf (substfor x m (exist x1 p) (exist x1 q))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Substitution for Value
+;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+  substval : nat -> val -> val -> val -> jsubstval
+
+  substval_var_eq :
+    /\x:nat./\m:val./\x1:nat.
+      pf (eq_nat x x1) ->
+      pf (substval x m (var x1) m)
+
+  substval_var_neq :
+    /\x:nat./\m:val./\x1:nat.
+      pf (neq_nat x x1) ->
+      pf (substval x m (var x1) (var x1)
+
+  substval_unit :
+    /\x:nat./\m:val. pf (substval x m unit unit)
+
+  substval_fun_eq :
+    /\x:nat./\m:val./\y:nat./\e:exp.
+      pf (eq_nat x y) ->
+      pf (substval x m (fun y e) (fun y e))
+
+  substval_fun_neq :
+    /\x:nat./\m:val./\y:nat./\e:exp.
+     /\e':exp.
+      pf (neq_nat x y) ->
+      pf (substexp x m e e') ->
+      pf (substval x m (fun y e) (fun y e'))
+
+  substval_pair :
+    /\x:nat./\m:val./\m1:val./\m2:val.
+     /\m1':val./\m2':val.
+      pf (substval x m m1 m1') ->
+      pf (substval x m m2 m2') ->
+      pf (substval x m (pair m1 m2) (pair m1' m2'))
+
+  substval_const :
+    /\x:nat./\m:val./\h1:h./\m1:val.
+     /\m1':val.
+      pf (substval x m m1 m1') ->
+      pf (substval x m (h m1) (h m1'))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Substitution for Expression
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+  substexp : nat -> val -> exp -> exp -> jsubstexp
+
+  substexp_lift :
+    /\x:nat./\m:val./\m1:val./\m1':val.
+      pf (substval x m m1 m1') ->
+      pf (substval x m (lift m1) (lift m1'))
+
+  substexp_app :
+    /\x:nat./\m:val./\m1:val./\m2:val.
+     /\m1':val./\m2':val.
+      pf (substval x m m1 m1') ->
+      pf (substval x m m2 m2') ->
+      pf (substval x m (app m1 m2) (app m1' m2'))
+
+  substexp_eq :
+    /\x:nat./\m:val./\m1:val./\m2:val.
+     /\m1':val./\m2':val.
+      pf (substval x m m1 m1') ->
+      pf (substval x m m2 m2') ->
+      pf (substval x m (eq m1 m2) (eq m1' m2'))
+
+  substexp_let_eq :
+    /\x:nat./\m:val./\y:nat./\e1:exp./\e2:exp.
+     /\e1':exp./\e2':exp.
+      pf (substexp x m e1 e1') ->
+      pf (eq_nat x y) ->
+      pf (substexp x m (let y e1 e2) (let y e1' e2))
+
+  substexp_let_neq ;
+    /\x:nat./\m:val./\y:nat./\e1:exp./\e2:exp.
+     /\e1':exp./\e2':exp.
+      pf (substexp x m e1 e1') ->
+      pf (neq_nat x y) ->
+      pf (substexp x m e2 e2') ->
+      pf (substexp x m (let y e1 e2) (let y e1' e2'))
+
+  substexp_split_eq_1 :
+    /\x:nat./\m:val./\y1:nat./\y2:nat./\m1:val./\e:exp.
+     /\m1':val.
+      pf (substval x m m1 m1') ->
+      pf (eq_nat x y1) ->
+      pf (substexp x m (split y1 y2 m1 e) (split y1 y2 m1' e))
+
+  substexp_split_eq_2 :
+    /\x:nat./\m:val./\y1:nat./\y2:nat./\m1:val./\e:exp.
+     /\m1':val.
+      pf (substval x m m1 m1') ->
+      pf (eq_nat x y2) ->
+      pf (substexp x m (split y1 y2 m1 e) (split y1 y2 m1' e))
+   
+  substexp_split_neq :
+    /\x:nat./\m:val./\y1:nat./\y2:nat./\m1:val./\e:exp.
+     /\m1':val./\e':exp.
+      pf (substval x m m1 m1') ->
+      pf (neq_nat x y1) ->
+      pf (neq_nat x y2) ->
+      pf (substexp x m e e') ->
+      pf (substexp x m (split y1 y2 m1 e) (split y1 y2 m1' e'))
+
+  substexp_match_eq :
+    /\x:nat./\m:val./\m1:val./\h1:h./\y:nat./\e1:exp./\e2:exp.
+     /\m1':val./\e2':exp.
+      pf (substval x m m1 m1') ->
+      pf (substexp x m e2 e2') ->
+      pf (eq_nat x y) ->
+      pf (substexp x m (match m1 h y e1 e2) (match m1' h y e1 e2'))
+
+  substexp_match_neq :
+    /\x:nat./\m:val./\m1:val./\h1:h./\y:nat./\e1:exp./\e2:exp.
+     /\m1':val./\e1':exp./\e2':exp.
+      pf (substval x m m1 m1') ->
+      pf (substexp x m e1 e1') ->
+      pf (substexp x m e2 e2') ->
+      pf (neq_nat x y) ->
+      pf (substexp x m (match m1 h y e1 e2) (match m1' h y e1' e2'))
+
+  substexp_get : 
+    /\x:nat./\m:val. pf (substexp x m get get)
+
+  substexp_set :
+    /\x:nat./\m:val./\m1:val./\m1':val.
+      pf (substval x m m1 m1') ->
+      pf (substexp x m (set m1) (set m1'))
+
+  substexp_assume :
+    /\x:nat./\m:val./\s:nat./\p:for./\q:for.
+      pf (substfor x m p q) ->
+      pf (substfor x m (assume s p) (assume s q))
+
+  substexp_assert :
+    /\x:nat./\m:val./\s:nat./\p:for./\q:for.
+      pf (substfor x m p q) ->
+      pf (substfor x m (assert s p) (assert s q))
+      
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Unfolding for Value Type
@@ -1413,3 +1696,4 @@
         pf (fv_ty ty1' set2) ->
         pf (notain a1' set2) ->
         pf (subty env1 (rec a1 ty1) (rec a1' ty1'))
+
