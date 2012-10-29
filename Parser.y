@@ -30,17 +30,18 @@
 
 module Parser where
 
-import Char
+import Data.Char
 import AST
 
 dummy_var_name = "$d"
 
 }
 
-%name parser
+%name parseprog
 %partial parsekind K
 %partial parsetype A
 %partial parseterm M
+
 
 %tokentype { Token }
 %error { parseError }
@@ -55,8 +56,12 @@ dummy_var_name = "$d"
 	'('	{ TokenOB }
 	')'	{ TokenCB }
 	arrow	{ TokenArrow }
+	atType	{ TokenAT "type" }
+	atTerm	{ TokenAT "term" }
 
 %%
+
+Program	: Decl				{ $1 }
 
 K	: Type				{ Type }
 	| Pi var ':'  A '.' K		{ PiK $2 $4  $6 }
@@ -81,6 +86,21 @@ M1	: var				{ ConstM $1 }
 	| M1 var			{ App $1 (ConstM $2) }
 	| M1 '(' M ')'			{ App $1 $3 }
 
+Decl	: TypeDeclaration 
+	  TermDeclaration 		{ $1 ++ $2 }
+
+TypeDeclaration
+	: atType TyDecls		{ $2 }
+
+TermDeclaration
+	: atTerm TmDecls		{ $2 }
+
+TyDecls	: var ':' K '.'			{ [HasKind (ConstA $1) $3] }
+	| var ':' K '.' TyDecls		{ (HasKind (ConstA $1) $3) : $5 }
+
+TmDecls	: var ':' A '.'			{ [HasType (ConstM $1) $3] }
+	| var ':' A '.' TmDecls		{ (HasType (ConstM $1) $3) : $5 }
+
 {
 
 parseError :: [Token] -> a
@@ -96,21 +116,24 @@ data Token = TokenType
 	   | TokenOB
 	   | TokenCB
 	   | TokenArrow
+	   | TokenAT String
 	   deriving Show
 
 
 lexer :: String -> [Token]
 lexer [] = []
-lexer (c:cs) | isSpace c = lexer cs
-      	     | isAlpha c = lexVar (c:cs)
---	     | isDigit c = lexNum (c:cs)
 lexer (':':cs) = TokenColon : lexer cs
+lexer (';':cs) = lexer (dropWhile (/= '\n') cs)
 lexer ('.':cs) = TokenDot : lexer cs
 lexer ('(':cs) = TokenOB : lexer cs
 lexer (')':cs) = TokenCB : lexer cs
 lexer ('-':'>':cs) = TokenArrow : lexer cs
 lexer ('/':'\\':cs) = TokenPi : lexer cs
 lexer ('\\':cs) = TokenLam : lexer cs
+lexer ('@':cs) = lexAt (lexVar cs)
+lexer (c:cs) | isSpace c = lexer cs
+      	     | isAlpha c = lexVar (c:cs)
+--	     | isDigit c = lexNum (c:cs)
 lexer (c:cs) = error [c]
 
 -- lexNum cs = TokenInt (read num) : lexer rest
@@ -120,7 +143,12 @@ lexVar cs = case span isVarChar cs of
        	       ("Type", rest) -> TokenType : lexer rest
 	       (var, rest) -> TokenVar var : lexer rest
 
+lexAt ((TokenVar "type"):nextToks) = TokenAT "type" : nextToks
+lexAt ((TokenVar "term"):nextToks) = TokenAT "term" : nextToks
+lexAt _                            = error ['@']
+
 isVarChar c = isAlpha c || isDigit c || c == '_' || c == '\''
+
 
 
 }
