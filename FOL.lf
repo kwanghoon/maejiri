@@ -1,0 +1,47 @@
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
+;; The First-order logic in LF
+;;
+;; Ref. Robert Harper, Furio Honsell, and Gordon Plotkin,
+;;      A Framework for Defining Logics, Journal of the ACM,
+;;      pp.143-184, Vol.40, No.1, January 1993.
+;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+@type
+
+ indi     : Type.
+ prop     : Type.
+
+ true     : prop -> Type.
+
+@term
+
+ zero     : indi.
+ succ     : indi -> indi.
+ plus     : indi -> indi -> indi.
+ times    : indi -> indi -> indi.
+
+ equal    : indi -> indi -> prop.
+ lessthan : indi -> indi -> prop.
+ not      : prop -> prop.
+ conj     : prop -> prop -> prop.
+ disj     : prop -> prop -> prop.
+ impl     : prop -> prop -> prop.
+ forall   : (indi -> prop) -> prop.
+ exists   : (indi -> prop) -> prop.
+
+ raa      : /\p:prop. true (not (not p)) -> true p.
+
+ impl_i   : /\p:prop./\q:prop. (true p -> true q) -> true (impl p q).
+ forall_e : /\F:indi -> prop. /\x:indi.
+              true (forall (\x:indi. F x)) -> true (F x).
+ forall_i : /\F:indi -> prop. 
+              (/\x:indi. true (F x)) -> true (forall (\x:indi. F x)).
+
+ exists_e : /\F:indi -> prop./\p:prop.
+              true (exists (\x:indi. F x))
+                -> (/\x:indi. true (F x) -> true p)
+                  -> true p.
+
