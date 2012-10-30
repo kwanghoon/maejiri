@@ -1,6 +1,7 @@
 
 module Main where
 
+import System.Exit
 import System.IO
 import System.Environment (getArgs)
 
@@ -14,22 +15,41 @@ interactive =
 
 main = 
   do args <- getArgs
-     perform args
+     process args
      
-perform [] = 
+process [] = 
   do putStrLn "No input file"
      return ()
 
-perform ("-interactive":_) =
+process ("-interactive":_) =
   do interactive
   
-perform (filename:_) = 
+process (filename:_) = 
   do h    <- openFile filename ReadMode
      text <- hGetContents h
-     putStrLn text
-     putStrLn (show . parseprog . lexer $ text)
---     putStrLn (show . lexer $ text)
+     let sigs = parseprog (lexer text)
+     -- putStrLn (show sigs)
+     shell (toCtx sigs)
+     hClose h
      
-
-
+shell ctx =     
+  do putStr "MaeJi> "
+     hFlush stdout
+     line <- getLine
+     doComm ctx line
+     putStrLn ""
+     shell ctx
+     
+doComm ctx (':':'t':' ':text) = 
+  do let term = toDBIdxM $ parseterm $ lexer $ text
+     res <- typecheck ctx term
+     tychkResult res
+  where
+    tychkResult (Left ty)   = prType [] ty
+    tychkResult (Right err) = putStr (show err)
+    
+doComm ctx (':':'q':_) = exitSuccess
   
+doComm ctx (_) =
+  do return ()
+     

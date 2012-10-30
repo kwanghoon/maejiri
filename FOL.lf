@@ -45,3 +45,7 @@
                 -> (/\x:indi. true (F x) -> true p)
                   -> true p.
 
+;;
+; TEST
+;
+; impl (forall (\x:indi.equal x x)) (exists (\x:indi.equal x x))

@@ -6,6 +6,12 @@ import AST
 
 type Ctx = (ConstTypeEnv, ConstTermEnv, VarTermEnv)
 
+toCtx sigs = (typeDecls, termDecls, [])
+  where
+    typeDecls = [(s,k) | HasKind (ConstA s) k <- sigs]
+    termDecls = [(s,t) | HasType (ConstM s) t <- sigs]
+
+
 type ConstTypeEnv = [(String, K)]
 type ConstTermEnv = [(String, A)]
 type VarTermEnv   = [A]
