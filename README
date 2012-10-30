@@ -1,1 +1,12 @@
 An LF type checker in Haskell.
+
+$ git clone http://github.com/kwanghoon/maejiri.git
+$ cd maejiri
+$ ghc --make Main.hs
+$ ./Main FOL.lf
+MaeJi> :t forall_e
+PIA F:PIA $d:indi.prop.PIA x:indi.PIA $d:(true (forall Lam x':indi.(F x))).(true (F x))
+MaeJi> :t impl (forall (\x:indi.equal x x)) (exists (\x:indi.equal x x))
+prop
+MaeJi> :q
+$
