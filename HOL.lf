@@ -8,3 +8,35 @@
 ;;      pp.143-184, Vol.40, No.1, January 1993.
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+@type
+
+ holtype : Type.
+ obj     : holtype -> Type.
+ true    : obj prop -> Type.
+
+@term
+
+ indi    : holtype.
+ prop    : holtype.
+ arrow   : holtype -> holtype -> holtype.
+
+ zero    : obj indi.
+ succ    : obj (arrow indi indi).
+ plus    : obj (arrow indi (arrow indi indi)).
+ times   : obj (arrow indi (arrow indi indi)).
+ lessth  : obj (arrow indi (arrow indi prop)).
+ not     : obj (arrow prop prop).
+ conj    : obj (arrow prop (arrow prop prop)).
+ disj    : obj (arrow prop (arrow prop prop)).
+ impl    : obj (arrow prop (arrow prop prop)).
+ equal   : /\s:holtype. obj(arrow s (arrow s prop)).
+ forall  : /\s:holtype. obj(arrow (arrow s prop) prop).
+ exists  : /\s:holtype. obj(arrow (arrow s prop) prop).
+ lam     : /\s:holtype. /\t:holtype. (obj s -> obj t) -> obj (arrow s t).
+ app     : /\s:holtype. /\t:holtype. obj (arrow s t) -> obj s -> obj t.
+
+ all_i   : /\s:holtype./\F:obj(arrow s prop). 
+             (/\x:obj s. true (app F x)) -> true (app forall F).
+ all_e   : /\s:holtype./\F:obj(arrow s prop)./\x:obj s. 
+             true (app forall F) -> true (app F x).
