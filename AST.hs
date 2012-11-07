@@ -23,6 +23,7 @@ data M = Var Int Int | ConstM String | App M M | Lam X A M
 -- Signatures
 data Sig = HasKind A K
          | HasType M A
+         | HasDef  M M
          deriving Show           
 
 --------------------------------------------------------------------------------
@@ -106,6 +107,12 @@ prSig (HasType m a) =
   do { prTerm [] m; 
        putStr " : ";
        prType [] a;
+       putStrLn ""; 
+     }
+prSig (HasDef x m) =
+  do { prTerm [] x; 
+       putStr " : ";
+       prTerm [] m;
        putStrLn ""; 
      }
   

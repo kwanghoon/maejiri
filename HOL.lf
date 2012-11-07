@@ -27,6 +27,7 @@
  times   : obj (arrow indi (arrow indi indi)).
  lessth  : obj (arrow indi (arrow indi prop)).
  not     : obj (arrow prop prop).
+
  conj    : obj (arrow prop (arrow prop prop)).
  disj    : obj (arrow prop (arrow prop prop)).
  impl    : obj (arrow prop (arrow prop prop)).
@@ -40,3 +41,21 @@
              (/\x:obj s. true (app F x)) -> true (app forall F).
  all_e   : /\s:holtype./\F:obj(arrow s prop)./\x:obj s. 
              true (app forall F) -> true (app F x).
+
+ eq      : /\phi:obj prop./\psi:obj prop. true phi 
+             -> true (ext_eq phi psi) -> true psi.
+
+ ext_lam : /\phi:obj prop./\psi:obj prop. true phi 
+             -> true (ext_eq phi psi) ->  true psi.
+
+ beta    : /\s:holtype./\t:holtype./\f:obj s 
+             -> obj t./\x:obj s. 
+               true (ext_eq (app (lam (\x:obj s. f x)) x) f x).
+
+ eta     : /\s:holtype./\t:holtype./\f:obj (arrow s t).
+             true (ext_eq (lam (\x:obj s. app f x)) f).
+
+@def
+
+;ext_eq  : /\s:holtype.obj s -> obj s -> obj prop.
+  ext_eq  = \s:holtype.\x:obj s.\y:obj s.app (app equal x) y.

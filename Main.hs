@@ -14,7 +14,8 @@ interactive =
      putStrLn (show . parseprog.lexer $ text)
 
 main = 
-  do args <- getArgs
+  do putStrLn "MaeJi LF Explorer (Ver. 0.1)"
+     args <- getArgs
      process args
      
 process [] = 

@@ -55,9 +55,11 @@ dummy_var_name = "$d"
 	'.'	{ TokenDot }
 	'('	{ TokenOB }
 	')'	{ TokenCB }
+	'='	{ TokenEQ }
 	arrow	{ TokenArrow }
 	atType	{ TokenAT "type" }
 	atTerm	{ TokenAT "term" }
+	atDef	{ TokenAT "def" }
 
 %%
 
@@ -87,7 +89,8 @@ M1	: var				{ ConstM $1 }
 	| M1 '(' M ')'			{ App $1 $3 }
 
 Decl	: TypeDeclaration 
-	  TermDeclaration 		{ $1 ++ $2 }
+	  TermDeclaration
+	  DefDeclaration 		{ $1 ++ $2 ++ $3 }
 
 TypeDeclaration
 	: atType TyDecls		{ $2 }
@@ -95,11 +98,18 @@ TypeDeclaration
 TermDeclaration
 	: atTerm TmDecls		{ $2 }
 
+DefDeclaration
+	:				{ [] }
+	| atDef DefDecls		{ $2 }
+
 TyDecls	: var ':' K '.'			{ [HasKind (ConstA $1) $3] }
 	| var ':' K '.' TyDecls		{ (HasKind (ConstA $1) $3) : $5 }
 
 TmDecls	: var ':' A '.'			{ [HasType (ConstM $1) $3] }
 	| var ':' A '.' TmDecls		{ (HasType (ConstM $1) $3) : $5 }
+
+DefDecls: var '=' M '.'			{ [HasDef  (ConstM $1) $3] }
+	| var '=' M '.' DefDecls	{ (HasDef  (ConstM $1) $3) : $5 }
 
 {
 
@@ -117,6 +127,7 @@ data Token = TokenType
 	   | TokenCB
 	   | TokenArrow
 	   | TokenAT String
+	   | TokenEQ
 	   deriving Show
 
 
@@ -131,6 +142,7 @@ lexer ('-':'>':cs) = TokenArrow : lexer cs
 lexer ('/':'\\':cs) = TokenPi : lexer cs
 lexer ('\\':cs) = TokenLam : lexer cs
 lexer ('@':cs) = lexAt (lexVar cs)
+lexer ('=':cs) = TokenEQ : lexer cs
 lexer (c:cs) | isSpace c = lexer cs
       	     | isAlpha c = lexVar (c:cs)
 --	     | isDigit c = lexNum (c:cs)
@@ -145,11 +157,10 @@ lexVar cs = case span isVarChar cs of
 
 lexAt ((TokenVar "type"):nextToks) = TokenAT "type" : nextToks
 lexAt ((TokenVar "term"):nextToks) = TokenAT "term" : nextToks
+lexAt ((TokenVar "def"):nextToks)  = TokenAT "def"  : nextToks
 lexAt _                            = error ['@']
 
 isVarChar c = isAlpha c || isDigit c || c == '_' || c == '\''
-
-
 
 }
 
