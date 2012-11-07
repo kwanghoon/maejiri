@@ -1,0 +1,1699 @@
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
+;; The Formal Definition of RIF in LF
+;;     (RIF: Refined Imperative Fixped-Point Calculus)
+;;
+;; By Kwanghoon Choi
+;;
+;; Ref. Borgstrom, Gordon, Pucella, Roles, Stacks, Histories: 
+;;      A Triple for Hoare, JFP, 2010.
+;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+
+@kind
+
+  ;; x : Type   ;; variable
+  ;; a : Type   ;; type variable
+  h : Type   ;; value constructor
+
+  nat : Type ;; natural number
+    
+  val : Type ;; value
+  exp : Type ;; expression
+
+  ty  : Type ;; value type
+  cty : Type ;; computational type
+  for : Type ;; formula
+    
+  env : Type ;; environment
+  mu  : Type ;; entry
+  set : Type ;; set (variable, type variable, state variable)
+
+  jenv : Type ;; judgment for well-formed environment
+  jty : Type ;; judgment for well-formed type
+  jcty : Type ;; judgment for well-formed computation type
+  jfofor : Type ;; judgment for first-order formula
+  jsubty : Type ;; judgment for subtype
+  jsubcty : Type ;; judgment for sub-computation type
+  jhasty : Type ;; judgment for type assignment
+  jhascty : Type ;; judgment for computation type assignment
+    
+  jcisfo : Type ;; judgment for "C is first-order"
+  jtisfo : Type ;; judgment for "T is first-order"
+    
+  jfvmu  : Type ;; judgment for "fv(mu)=S"
+  jfvty  : Type ;; judgment for "fv(ty)=S"
+  jfvcty : Type ;; judgment for "fv(cty)=S"
+  jfvfor : Type ;; judgment for "fv(for)=S"
+  jfvval  : Type ;; judgment for "fv(val)=S"
+  jfvexp : Type ;; judgment for "fv(exp)=S"
+    
+  jtyisfo : Type ;; judgment for "T is first-order"
+  jforisfo : Type ;; judgment for "C is first-order"
+  jvalisfo : Type ;; judgment for "M is first-order"
+  jfov : Type ;; judgment for "fov(E) = S"
+
+
+  jVtyInEnv : Type   ;;
+  jSubInEnv : Type   ;;
+
+  jsubstty    : Type   ;;
+  jsubstcty   : Type   ;;
+  jsubstfor   : Type   ;;
+  jsubstval   : Type   ;;
+  jsubstexp   : Type   ;;
+
+  junfold     : Type   ;;
+  junfoldcty  : Type   ;;
+
+  jaugmentcty : Type
+  jhty : Type
+
+  jisempty   : Type ;;
+
+  jain    : Type;
+  jxin    : Type;
+  jnotain : Type;
+  jnotxin : Type;
+  
+  jintersect : Type ;;
+
+@type
+
+;;;;;;;;;;;
+;; Syntax
+;;;;;;;;;;;
+
+  ;; Value Constructor
+  inl  : h   ;; h ::= inl
+  inr  : h   ;;    |  inr
+  fold : h   ;;    |  fold
+
+  ;; Value                     
+  var   : nat -> val        ;; M,N ::= x (s,x,y,z)
+  unit  : val               ;;      |  ()
+  fun   : nat -> exp -> val ;;      |  fun x.A
+  pair  : val -> val -> val ;;      |  (M,N)
+  const : h -> val -> val   ;;      |  h M
+
+  true_val  : const inl unit ;; inl unit   [Q] The notation : should be 
+  false_val : const inr unit ;; inr unit   something like `def'.
+
+  ;; Expression    
+  lift  : val -> exp                         ;; A,B ::= M
+  app   : val -> val -> exp                  ;;      |  M N
+  eq    : val -> val -> exp                  ;;      |  M = N 
+  let   : nat -> exp -> exp -> exp           ;;      |  let x = A in B
+  split : nat -> nat -> val -> exp -> exp    ;;      |  let (x,y) = M in A
+  match : val -> h -> nat -> exp -> exp -> exp ;;    |  match M with h x->A
+                                             ;;                      else B
+
+  get    : exp                               ;;      |  get()
+  set    : val -> exp                        ;;      |  set(M)
+  assume : nat -> for -> exp                 ;;      |  assume (s)C
+  assert : nat -> for -> exp                 ;;      |  assert (s)C
+    
+  ;; Value Type                                        
+  tyvar  : nat -> ty              ;; T, U, V ::= alpha (type variable)
+  unitty : ty                     ;;          |  unit
+  depfun : nat -> ty -> cty -> ty ;;          |  Px:T.F
+  depsum : nat -> ty -> ty -> ty  ;;          |  Sx:T.U
+  sum    : ty -> ty -> ty         ;;          |  T + U
+  rec    : nat -> ty -> ty        ;;          |  \mu a.T
+
+  bool   : sum unit unit        ;; bool ::= inl unit | inr unit
+  state  : ty                   ;; as a distinct type?
+    
+  ;; Computation Type
+  tri : nat -> for -> nat -> ty -> nat -> for -> cty 
+                                            ;; F,G ::= {(s0)C0} x:T {(s1)C1}
+    
+  ;; First-order Formula
+  equ   : val -> val -> for ;; C ::= M = M'
+  not   : for -> for        ;;    |  ~C
+  and   : for -> for -> for ;;    |  C /\ C
+  or    : for -> for -> for ;;    |  C \/ C
+  imp   : for -> for -> for ;;    |  C -> C
+  all   : nat -> for -> for ;;    |  forall x.C
+  exist : nat -> for -> for ;;    |  exist x.C
+
+  true  : for               ;;    |  True     [Q] Is this enough to introduce 
+  iff   : for -> for -> for ;;    |  C <-> C'     the trueth value, true?
+
+  ;; Envorinment    
+  empenv : env              ;; E ::= \pi
+  extenv : env -> mu -> env ;;    |  E, mu
+
+  ;; Environmental Entry    
+  sub  : nat -> nat -> mu  ;; mu ::= a <: a'
+  svar : nat -> mu         ;;     |  s
+  vty  : nat -> ty -> mu   ;;     |  x:T
+
+
+;;;;;;;;;;;;
+;; Utility
+;;;;;;;;;;;;
+
+  ;; Natural Number
+  zero : nat         ;;
+  succ : nat -> nat  ;;
+
+  eq_nat : nat -> nat -> jeqnat
+
+  eq_zero : pf (eq_nat zero zero)               ;; zero = zero
+
+  eq_succ : /\n1:nat./\n2:nat.
+                pf (eq_nat n1 n2) ->            ;; n1 = n2 => succ n1 = succ n2
+                pf (eq_nat (succ n1) (succ n2))
+
+  neq_nat : nat -> nat -> jneqnat
+
+  neq_zero1 : /\n:nat. pf (neq_nat zero (succ n))
+
+  neq_zero2 : /\n:nat. pf (neq_nat (succ n) zero)
+
+  neq_succ : /\n1:nat./\n2:nat.
+                pf (neq_nat n1 n2) ->
+                pf (neq_nat (succ n1) (succ n2))
+
+  ;; Set (over x and a)
+
+  empset                    ;; set ::= \phi
+  set_x : nat -> set        ;;       | { x }
+  set_a : nat -> set        ;;       | { a }
+  node  : set -> set -> set ;;       | set U set where U is disjoint union
+
+  ain      : nat -> set -> jain      ;; a \isin S
+  xin      : nat -> set -> jxin      ;; x \isin S
+  notain   : nat -> set -> jnotain   ;; a \not\isin S
+  notxin   : nat -> set -> jnotxin   ;; x \not\isin S
+
+  ain_set_a  : /\a:nat./\a':nat.
+                 pf (eq_nat a a') ->
+                 pf (ain a (set_a a'))
+
+  ain_node1 : /\a:nat./\set1:set./\set2:set.
+                pf (ain a set1) ->
+                pf (ain a (node set1 set2))
+
+  ain_node2 : /\a:nat./\set1:set./\set2:et.
+                pf (ain a set2) ->
+                pf (ain a (node set1 set2))
+
+  notain_emptset : /\a:nat. pf (notain a empset)
+
+  notain_set_a   : /\a:nat./\a':nat.
+                     pf (neq_nat a a') ->
+                     pf (notain a (set_a a'))
+
+  notain_node   : /\a:nat./\set1:set./\set2:set.
+                    pf (notain a set1) ->
+                    pf (notain a set2) ->
+                    pf (notain a (node set1 set2))
+
+  xin_set_x  : /\x:nat./\x':nat.
+                 pf (eq_nat x x') ->
+                 pf (xin x (set_x x'))
+
+  xin_node1 : /\x:nat./\set1:set./\set2:set.
+                pf (xin x set1) ->
+                pf (xin x (node set1 set2))
+
+  xin_node2 : /\x:nat./\set1:set./\set2:set.
+                pf (xin x set2) ->
+                pf (xin x (node set1 set2))
+
+  notxin_empset : /\x:nat. pf (notxin x empset)
+
+  notxin_set_x  : /\x:nat./\x':nat.
+                    pf (neq_nat x x') ->
+                    pf (notxin x (set_x x'))
+
+  notxin_node  : /\x:nat./\set1:set./\set2:set.
+                   pf (notxin x set1) ->
+                   pf (notxin x set2) ->
+                   pf (notxin x (node set1 set2))
+
+
+  isempty         : set -> jisempty         ;; S = \phi
+
+  isempty_emptset : pf (isempty empset)
+
+
+
+  notempty        : set -> jnotempty      ;; S \not= \phi
+
+  notempty_set_x  : /\x:nat. pf (notempty (set_x x))
+
+  notempty_set_a  : /\a:nat. pf (notempty (set_a a))
+
+  notempty_node1 : /\set1:set./\set2:set.
+                     pf (notempty set1) ->
+                     pf (notempty (node set1 set2))
+
+  notempty_node2 : /\set1:set./\set2:set.
+                     pf (notempty set2) ->
+                     pf (notempty (node set1 set2))
+
+
+  intersect : set -> set -> set -> jintersect   ;; S \cap S' = S''
+
+  intersect_empset_set   :                      ;; {} \cap S = {}
+    /\set1:set. pf (intersect empset set1 
+                                        empset)
+
+  intersect_set_x_empset :                      ;; {x} \cap {} = {}
+    /\x:nat. pf (intersect (set_x x) empset 
+                                        empset)
+
+  intersect_set_x_set_a  :                      ;; {x} \cap {a} = {}
+    /\x:nat./\a:nat. pf (intersect (set_x x)
+                              (set_a a) empset)
+
+  intersect_set_x_set_x_eq :                    ;; {x} \cap {x} = {x}
+    /\x:nat./\x':nat.
+         pf (eq_nat x x') ->
+         pf (intersect (set_x x) (set_x x') 
+                                     (set_x x))
+
+  intersect_set_x_set_x_neq :                   ;; {x} \cap {x'} = {}
+    /\x:nat./\x':nat.
+         pf (neq_nat x x') ->
+         pf (intersect (set_x x) (set_x x') 
+                                        empset)
+
+  intersect_set_x_node :                        ;; {x} \cap (S1 U S2) =
+    /\x:nat./\set1:set./\set2:set.              ;; {x} \cap S1 U {x} \cap S2
+         pf (intersect (set_x x) set1 set3) ->
+         pf (intersect (set_x x) set2 set4) ->
+         pf (intersect (set_x x) 
+                              (node set1 set2)
+                              (node set3 set4))
+
+  intersect_set_a_empset :                      ;; {a} \cap {} = {}
+    /\a:nat. pf (intersect (set_a a) empset 
+                                        empset)
+
+  intersect_set_a_set_x  :                      ;; {a} \cap {x} = {}
+    /\a:nat./\x:nat. pf (intersect (set_a a)
+                              (set_x x) empset)
+
+  intersect_set_a_set_a_eq :                    ;; {a} \cap {a} = {a}
+    /\a:nat./\a':nat.
+         pf (eq_nat a a') ->
+         pf (intersect (set_a a) (set_a a') 
+                                     (set_a a))
+
+  intersect_set_a_set_a_neq :                   ;; {a} \cap {a'} = {}
+    /\a:nat./\a':nat.
+         pf (neq_nat a a') ->
+         pf (intersect (set_a a) (set_a a') 
+                                        empset)
+
+  intersect_set_a_node :                        ;; {a} \cap (S1 U S2) =
+    /\a:nat./\set1:set./\set2:set.              ;;  {a} \cap S1 U {a} \cap S2
+         pf (intersect (set_a a) set1 set3) ->
+         pf (intersect (set_a a) set2 set4) ->
+         pf (intersect (set_a a) 
+                              (node set1 set2) 
+                              (node set3 set4))
+
+  intersect_node_set :                          ;; (S1 U S2) \cap S3 = 
+    /\set1:set./\set2:set./\set3:set.           ;;  (S1 \cap S3) U (S2 \cap S3)
+     /\set4:set./\set5:set.
+         pf (intersect set1 set3 set4) ->
+         pf (intersect set2 set3 set5) ->
+         pf (intersect (node set1 set2) set3
+                             (node set4 set5))
+
+  union     : set -> set -> set -> junion
+
+  union_empset_set :                           ;; {} U S = S
+   /\set1:set. pf (union empset set set)
+
+  union_set_x_empset :                         ;; {x} U {} = {x}
+   /\x:nat. pf (union (set_x x) empset 
+                               (set_x x))
+
+  union_set_x_set_a :                          ;; {x} U {a} = {x,a}
+   /\x:nat./\a:nat. pf (union (set_x x) 
+                              (set_a a) 
+                              (node (set_x x) (set_a a)))
+
+  union_set_x_set_x_eq :                       ;; {x} U {x} = {x}
+   /\x:nat./\x':nat.
+     pf (eq_nat x x') ->
+     pf (union (set_x x) (set_x x') (set_x x))
+
+  union_set_x_set_x_neq :                      ;; {x} U {x'} = {x,x'}
+   /\x:nat./\x':nat.
+     pf (neq_nat x x') ->
+     pf (union (set_x x) (set_x x') (node (set_x x) (set_x x')))
+
+  union_set_x_node :                           ;; {x} U (S1 U S2) =
+   /\x:nat./\set1:set./\set2:set.              ;; ({x} U S1) U S2
+    /\set3:set.
+     pf (union (set_x x) set1 set3) ->
+     pf (union (set_x x) (node set1 set2) (node set3 set2))
+
+  union_set_a_empset :                         ;; {a} U {} = {a}
+   /\a:nat. pf (union (set_a a) empset 
+                                    (set_a a))
+  union_set_a_set_x :                          ;; {a} U {x} = {a,x}
+   /\a:nat./\x:nat. 
+     pf (union (set_a a) (set_x x) 
+                    (node (set_a a) (set_x x))
+
+  union_set_a_set_a_eq :                       ;; {a} U {a} = {a}
+   /\a:nat./\a':nat.
+     pf (eq_nat a a') ->
+     pf (union (set_a a) (set_a a') (set_a a)) 
+
+  union_set_a_set_a_neq :                      ;; {a} U {a'} = {a,a'}
+   /\a:nat./\a':nat.
+     pf (neq_nat a a') ->
+     pf (union (set_a a) (set_a a') 
+                    (node (set_a a) (set_a a'))
+
+  union_set_a_node :                           ;; {a} U (S1 U S2) =
+   /\a:nat./\set1:set./\set2:set./\set3:set.   ;;  ({a} U S1) U S2
+     pf (union (set_a a) set1 set3) ->
+     pf (union (set_a a) (node set1 set2) 
+                             (node set3 set2))
+
+  union_node_set :                             ;; (S1 U S2) U S3 =
+   /\set1:set./\set2:set./\set3:set.           ;;  S1 U (S2 U S3)
+    /\set4:set.
+     pf (union set2 set3 set4) ->
+     pf (union (node set1 set2) set3 
+                             (node set1 set4))
+                             
+  diff      : set -> set -> set               ;; S \ S'
+
+  diff_empset_set :                           ;; {} \ S = {}
+   /\set1:set. pf (diff empset set empset)
+
+  diff_set_x_empset :                         ;; {x} \ {} = {x}
+   /\x:nat. pf (diff (set_x x) empset 
+                                    (set_x x))
+
+  diff_set_x_set_a :                          ;; {x} \ {a} = {x}
+   /\x:nat./\a:nat.
+     pf (diff (set_x x) (set_a a) (set_x x))
+
+  diff_set_x_set_x_eq :                       ;; {x} \ {x} = {}
+   /\x:nat./\x':nat.
+     pf (eq_nat x x') ->
+     pf (diff (set_x x) (set_x x') empset)
+
+  diff_set_x_set_x_neq :                      ;; {x} \ {x'} = {x}
+   /\x:nat./\x':nat.
+     pf (neq_nat x x') ->
+     pf (diff (set_x x) (set_x x') (set_x x))
+
+  diff_set_x_node :                           ;; {x} \ (S1 U S2) =
+   /\x:nat./\set1:set./\set2:set.             ;;  ({x} \ S1) \ S2
+    /\set3:set./\set4:set.
+     pf (diff (set_x x) set1 set3) ->
+     pf (diff set3 set2 set4) ->
+     pf (diff (set_x x) (node set1 set2) 
+                                        set4)
+
+  diff_set_a_empset :                         ;; {a} \ {} = {a}
+   /\a:nat. pf (diff (set_a a) empset 
+                                    (set_a a))
+
+  diff_set_a_set_x :                          ;; {a} \ {x} = {a}
+   /\a:nat./\x:nat.
+     pf (diff (set_a a) (set_x x) (set_a a))
+
+  diff_set_a_set_a_eq :                       ;; {a} \ {a} = {}
+   /\a:nat./\a':nat.
+     pf (eq_nat a a') ->
+     pf (diff (set_a a) (set_a a') empset)
+
+  diff_set_a_set_a_neq :                      ;; {a} \ {a'} = {a}
+   /\a:nat./\a':nat.
+     pf (neq_nat a a') ->
+     pf (diff (set_a a) (set_a a') (set_a a))
+
+  diff_set_a_node :                           ;; {a} \ (S1 U S2) =
+   /\a:nat./\set1:set./\set2:set.             ;;  ({a} \ S1) \ S2
+    /\set3:set./\set4:set.
+     pf (diff (set_a a) set1 set3) ->
+     pf (diff (set3 set2 set4) ->
+     pf (diff (set_a a) (union set1 set2) set4)
+
+  diff_node_set :                             ;; (S1 U S2) \ S3 =
+   /\set1:set./\set2:set./\set3:set.
+    /\set4:set./\set5:set.
+     pf (diff set1 set3 set4) ->
+     pf (diff set2 set3 set5) ->
+     pf (diff (node set1 set2) set3 
+                            (node set4 set5))
+
+  subseteq : set -> set -> jsubseteq          ;; S subseteq S' 
+
+  subseteq_con :
+   /\set1:set./\set2:set./\set3:set.
+     pf (diff set1 set2 set3) ->
+     pf (isempty set3) ->
+     pf (setbseteq set1 set2)
+
+  ;; Domain of Entry
+  dom_mu  : mu -> set -> jdommu                          ;; dom(mu) = S
+
+  dom_sub  : /\a1:nat./\a2:nat./\set1:set.
+               pf (union (set_a a1) (set_a a2) set1) ->
+               pf (dom_mu (sub a1 a2) set1)              ;; dom(a<:a')={a,a'}
+
+  dom_svar : /\s1:nat. pf (dom_mu (svar s1) (set_x s1))    ;; dom(s)    = {s}
+  dom_vty  : /\x1:nat./\t1:ty. pf (dom_mu (vty x1 t1)      ;; dom(x:T)  = {x}
+                                        (set_x x1))
+
+  ;; Domain of Environment
+  dom_env : env -> set -> jdomenv         ;; dom(env) = S
+
+  dom_empenv : pf (dom_env empenv empset) ;; dom(\phi) = \phi
+  dom_extenv : /\env1:env./\mu1:mu.       ;; dom(E,mu) = dom(E) U dom(mu)
+                 /\set1:set./\set2:set./\set3:set.
+                   pf (dom_env env1 set1) ->
+                   pf (dom_mu  mu1 set2) ->
+                   pf (union set1 set2 set3) ->
+                   pf (dom_env (extenv env1 mu1) set3)
+
+  ;; Free Variable of Entry
+  fv_mu : mu -> set -> jfvmu ;; fv(mu) = S
+
+  fv_sub  : /\a1:nat./\a2:nat./\set1:set.                 ;; fv(a<:a')={a,a'}
+              pf (union (set_a a1) (set_a a2) set1) ->
+              pf (fv_mu (sub a1 a2) set1)
+
+  fv_svar : /\s1:nat. pf (fv_mu (svar s1) (set_x s1))     ;; fv(s) = {s}
+
+  fv_vty  : /\x1:nat./\t1:ty./\s1:nat./\set1:set.         ;; fv(x:T)={x}Ufv(T)
+              pf (fv_ty t1 s1) ->
+              pf (union (set_x x1) s1 set1) ->
+              pf (fv_mu (vty x1 t1) set1)
+                    
+
+  ;; Free Variable of Value Type
+  fv_ty : ty -> set -> jfvty ;; fv(T)  = S
+
+  fv_tyvar  : /\a1:nat. pf (fv_ty (tyvar a1) (set_a a1)) ;; fv(x) = {x}
+
+  fv_unitty : pf (fv_ty unitty empset) ;; fv(unit) = {}
+
+  fv_depfun : /\x1:nat./\t1:ty./\f1:cty. ;; fv(\Pi x:T.F) = fv(T) U fv(F)\{x}
+                /\set1:set./\set2:set.
+                /\set3:set./\set4:set.
+                  pf (fv_ty t1 set1) ->
+                  pf (fv_cty f1 set2) ->
+                  pf (diff set2 (set_x x1) set3) ->
+                  pf (union set1 set3 set4) ->
+                  pf (fv_ty (depfun x1 t1 f1) set4)
+
+  fv_depsum : /\x1:nat./\t1:ty./\t2:ty. ;; fv(\Sigma x:T.F) = fv(T) U fv(F)\{x}
+                /\set1:set./\set2:set.
+                  pf (fv_ty t1 set1) ->
+                  pf (fv_ty t2 set2) ->
+                  pf (diff set2 (set_x x1) set3) ->
+                  pf (union set1 set3 set4) ->
+                  pf (fv_ty (depsum x1 t1 t2) set4)
+
+  fv_sum    : /\t1:ty./\t2:ty.        ;; fv(T+U) = fv(T) U fv(U)
+                /\set1:set./\set2:set./\set3:set.
+                  pf (fv_ty t1 set1) ->
+                  pf (fv_ty t2 set2) ->
+                  pf (union set1 set2 set3) ->
+                  pf (fv_ty (sum t1 t2) set3)
+
+  fv_rec    : /\a1:nat./\t1:ty.
+                /\set1:set./\set2:set.
+                  pf (fv_ty t1 set1) ->
+                  pf (diff set1 (set_a a1) set2) ->
+                  pf (fv_ty (rec a1 t1) set2)
+
+
+  fv_state  : pf (fv_ty state empset)
+
+
+  ;; Free Variable of Computation Type
+  fv_cty, "cty -> set -> jfvcty ;; fv(F)  = S
+
+  fv_tri : /\s1:nat./\c1:for./\x1:nat./\t1:ty./\s2:nat./\c2:for.
+             /\set1:set./\set2:set./\set3:set.
+             /\set4:set./\set5:set./\set6:set./\set7:set.
+             /\set8:set./\set9:set.
+               pf (fv_for c1 set1) ->
+               pf (fv_ty  t1 set2) ->
+               pf (fv_for c2 set3) ->
+               pf (union set1 set2 set4) ->
+               pf (diff set4 (set_x s1) set5) ->
+               pf (union (set_x x1) (set_x s2) set6) ->
+               pf (union (set_x s1) set6 set7) ->
+               pf (diff set3 set7 set8) ->
+               pf (union set5 set8 set9) ->
+               pf (fv_cty (tri s1 c1 x1 t1 s2 c2) set9)
+
+  ;; Free Variable of Formula
+  fv_for : for -> set -> jfvfor ;; fv(C)  = S
+
+  fv_equ   : /\m1:val./\m2:val.
+              /\set1:set./\set2:set./\set3:set
+               pf (fv_val m1 set1) ->
+               pf (fv_val m2 set2) ->
+               pf (union set1 set2 set3) ->               
+               pf (fv_for (equ m1 m2) set3)
+
+  fv_not   : /\c1:for./\set1:set.
+               pf (fv_for c1 set1) ->
+               pf (fv_for (not c1) set1)
+
+  fv_and   : /\c1:for./\c2:for.
+              /\set1:set./\set2:set./\set3:set.
+               pf (fv_for c1 set1) ->
+               pf (fv_for c2 set2) ->
+               pf (union set1 set2 set3) ->
+               pf (fv_for (and c1 c2) set3)
+
+  fv_or    : /\c1:for./\c2:for.
+              /\set1:set./\set2:set./\set3:set.
+               pf (fv_for c1 set1) ->
+               pf (fv_for c2 set2) ->
+               pf (union set1 set2 set3) ->
+               pf (fv_for (or c1 c2) set3)
+
+  fv_imp   : /\c1:for./\c2:for.
+              /\set1:set./\set2:set./\set3:set.
+               pf (fv_for c1 set1) ->
+               pf (fv_for c2 set2) ->
+               pf (union set1 set2 set3) ->
+               pf (fv_for (imp c1 c2) set3)
+
+  fv_all   : /\x1:nat./\c1:for.
+              /\set1:set./\set2:set.
+               pf (fv_for c1 set1) ->
+               pf (diff set1 (set_x x1) set2) ->
+               pf (fv_for (all x1 c1) set2)
+
+  fv_exist : /\x1:nat./\c1:for.
+              /\set1:set./\set2:set.
+               pf (fv_for c1 set1) ->
+               pf (diff set1 (set_x x1) set2) ->
+               pf (fv_for (exist x1 c1) set2)
+
+  fv_true  : pf (fv_for true empset)
+
+
+  ;; Free Variable of Value
+  fv_val : val -> set -> jfvval ;; fv(M)  = S
+
+  fv_var   : /\x1:nat. pf (fv_val (var x1) (set_x x1))
+
+  fv_unit  : pf (fv_val unit empset)
+
+  fv_fun   : /\x1:nat./\exp1:exp.
+              /\set1:set./\set2:set.
+               pf (fv_exp exp1 set1) ->
+               pf (diff set1 (set_x x1) set2) ->
+               pf (fv_val (fun x1 exp1) set2)
+
+  fv_pair  : /\val1:val./\val2:val.
+              /\set1:set./\set2:set./\set3:set.
+               pf (fv_val val1 set1) ->
+               pf (fv_val val2 set2) ->
+               pf (union set1 set2 set3) ->
+               pf (fv_val (pair exp1 exp2) set3)
+
+  fv_const : /\h1:h./\val1:val./\set1:set.
+               pf (fv_val val1 set1) ->
+               pf (fv_val (const h1 val1) set1)
+
+
+  ;; Free Variable of Expression
+  fv_exp : exp -> set -> jfvexp ;; fv(A)  = S
+    
+  fv_lift  : /\val1:val.
+               pf (fv_val val1 set1) ->
+               pf (fv_exp (lift val1) set1)
+
+  fv_app   : /\val1:val./\val2:val.
+               /\set1:set./\set2:set./\set3:set.
+                 pf (fv_val val1 set1) ->
+                 pf (fv_val val2 set2) ->
+                 pf (union set1 set2 set3) ->
+                 pf (fv_exp (app val1 val2) set3)
+
+  fv_eq    : /\val1:val./\val2:val.
+               /\set1:set./\set2:set./\set3:set.
+                 pf (fv_val val1 set1) ->
+                 pf (fv_val val2 set2) ->
+                 pf (union set1 set2 set3) ->
+                 pf (fv_exp (eq val1 val2) set3)
+
+  fv_let   : /\x1:nat./\exp1:exp./\exp2:exp.
+               /\set1:set./\set2:set.
+               /\set3:set./\set4:set.
+                 pf (fv_exp exp1 set1) ->
+                 pf (fv_exp exp2 set2) ->
+                 pf (diff set2 (set_x x1) set3) ->
+                 pf (union set1 set3 set4) ->
+                 pf (fv_exp (let x1 exp1 exp2) set4)
+
+  fv_split : /\x1:nat./\x2:nat./\val1:val./\exp1:exp.
+               /\set1:set./\set2:set.
+               /\set3:set./\set4:set./\set5:set.
+                 pf (fv_val val1 set1) ->
+                 pf (fv_exp exp1 set2) ->
+                 pf (union (set_x x1) (set_x x2) set3) ->
+                 pf (diff set2 set3 set4) ->
+                 pf (union set1 set4 set5) ->
+                 pf (fv_exp (split x1 x2 val1 exp1) set5)
+
+  fv_match : /\val1:val./\h1:h./\x1:nat.
+               /\exp1:exp./\exp2:exp.
+               /\set1:set./\set2:set./\set3:set.
+               /\set4:set./\set5:set./\set6:set.
+                 pf (fv_exp exp1 set1) ->
+                 pf (fv_exp exp2 set2) ->
+                 pf (fv_val val1 set3) ->
+                 pf (diff set1 (set_x x1) set4) ->
+                 pf (union set4 set2 set5) ->
+                 pf (union set5 set3 set6) ->
+                 pf (fv_exp (match val1 h x1 exp1 exp2) set6)
+
+  fv_get   : pf (fv_exp get empset)
+
+  fv_set   : /\val1:val./\set1:set.
+               pf (fv_val val1 set1) ->
+               pf (fv_exp (set val1) set1)
+
+  fv_assume : /\s1:nat./\for1:for.
+               /\set1:set./\set2:set.
+                pf (fv_for for1 set1) ->
+                pf (diff set1 (set_x s1) set2) ->
+                pf (fv_exp (assume s1 for1) set2)
+
+  fv_assert : /\s1:nat./\for1:for.
+               /\set1:set./\set2:set.
+                pf (fv_for for1 set1) ->
+                pf (diff set1 (set_x s1) set2) ->
+                pf (fv_exp (assert s1 for1) set2)
+
+
+  ;; First-order Value Type
+  fo_ty : ty -> jtyisfo ;; T is first-order
+
+  fo_a      : /\a1:nat. pf (fo_ty (tyvar a1))
+
+  fo_unit   : pf (fo_ty unitty)
+
+  fo_defsum : /\x1:nat./\ty1:ty./\ty2:ty.
+                pf (fo_ty ty1) ->
+                pf (fo_ty ty2) ->
+                pf (fo_ty (depsum x1 ty1 ty2))
+
+  fo_sum    : /\ty1:ty./\ty2:ty.
+                pf (fo_ty ty1) ->
+                pf (fo_ty ty2) ->
+                pf (fo_ty (sum ty1 ty2))
+
+  fo_rec    : /\a1:nat./\ty1:ty.
+                pf (fo_ty ty1) ->
+                pf (fo_ty (rec a1 ty1))
+
+  fo_state  : pf (fo_ty state)
+
+  ;; First-order Formula
+  fo_for : for -> jforisfo ;; C is first-roder
+
+  fo_equ : /\m1:val./\m2:val.
+             pf (fo_val m1) ->
+             pf (fo_val m2) ->
+             pf (fo_for (equ m1 m2))
+
+  fo_not : /\for1:for.
+             pf (fo_for for1) ->
+             pf (fo_for (not for1))
+
+  fo_and : /\for1:for./\for2:for.
+             pf (fo_for for1) ->
+             pf (fo_for for2) ->
+             pf (fo_for (and for1 for2))
+
+  fo_or  : /\for1:for./\for2:for.
+             pf (fo_for for1) ->
+             pf (fo_for for2) ->
+             pf (fo_for (or for1 for2))
+
+  fo_imp : /\for1:for./\for2:for.
+             pf (fo_for for1) ->
+             pf (fo_for for2) ->
+             pf (fo_for (imp for1 for2))
+
+  fo_all : /\x1:nat./\for1:for.
+             pf (fo_for for1) ->
+             pf (fo_for (all x1 for1))
+
+  fo_exist : /\x1:nat./\for1:for.
+               pf (fo_for for1) ->
+               pf (fo_for (exist x1 for1))
+
+  fo_true  : pf (fo_for true)
+
+  ;; First-order Value
+  fo_val : val -> jvalisfo ;; M is first-order
+
+
+  fo_var  :  /\x1:nat. pf (fo_val (var x1))
+
+  fo_unit : pf (fo_val unit)
+
+  fo_pair : /\m1:val./\m2:val.
+              pf (fo_val m1) ->
+              pf (fo_val m2) ->
+              pf (fo_val (pair m1 m2))
+
+  fo_const : /\h1:h./\m1:val.
+               pf (fo_val m1) ->
+               pf (fo_val (const h1 m1))
+
+  ;; First-order Variable in Environment
+  fov_env : env -> set -> jfov ;; fov(E) = S
+
+  fov_empenv     : pf (fov_env empenv empset)
+
+  fov_extenv_s   : /\env1:env./\s1:nat.
+                    /\set1:set./\set2:set.
+                      pf (fov_env env1 set1) ->
+                      pf (union set1 (set_x s1) set2) ->
+                      pf (fov_env (extenv env1 (svar s1)) set2)
+
+  ;; fov_extenv_sub : /\env1:env./\a1:nat./\a2:nat.
+  ;;                    /\set1:set.
+  ;;                      pf (fov_env env1 set1) ->
+  ;;                      pf (fov_env (extenv env1 (sub a1 a2)) set1)
+
+  fov_extenv_vty : /\env1:env./\x1:nat./\ty1:ty.
+                     /\set1:set./\set2:set.
+                       pf (fov_env env1 set1) ->
+                       pf (foty ty1) ->
+                       pf (union set1 (set_x x1) set2) ->
+                       pf (fov_env (extenv env1 (vty x1 ty1)) set2)
+
+
+;;;;;;;;;;;;;;
+;; Judgments
+;;;;;;;;;;;;;;
+
+  wfenv    : env -> jenv                  ;; E |- <>
+  wfty     : env -> ty -> jty             ;; E |- T
+  wfcty    : env -> cty -> jcty           ;; E |- F
+  wffofor  : env -> for -> jfofor         ;; E |- C fo
+  subty    : env -> ty -> ty -> jsubty    ;; E |- T <: U
+  subcty   : env -> cty -> cty -> jsubcty ;; E |- F <: G
+  hasty    : env -> val -> ty -> jhasty   ;; E |- M : T
+  hascty   : env -> exp -> cty -> jhascty ;; E |- A : F
+
+  sequent  : for -> for -> jsequent       ;; C |- C'
+
+  andi : 
+    /\p:for./\q:for. pf p -> pf q -> pf (and p q)
+
+  ande1 : 
+    /\p:for./\q:for. pf (and p q) -> pf p
+
+  ande2 : 
+    /\p:for./\q:for. pf (and p q) -> pf q
+
+  ori1 :
+    /\p:for./\q:for. pf p -> pf (or p q)
+
+  ori2 :
+    /\p:for./\q:for. pf q -> pf (or p q)
+
+  ore :
+    /\p:for./\q:for./\r:for.
+      (pf p -> pf r) ->
+      (pf q -> pf r) ->
+      pf r
+
+  impi : /\p:for./\q:for. (pf p -> pf q) -> pf (imp p q)
+
+  impe : /\p:for./\q:for. pf p -> pf (imp p q) -> pf q
+
+  noti : /\p:for. (pf p -> pf (not true)) -> pf (not p)
+
+  note : /\p:for. pf p -> pf (not p) -> pf (not true)
+
+  falsee : /\p:for. pf (not true) -> pf p
+
+  notnote : /\p:for. pf (not (not p)) -> pf p
+
+  equi : /\m:val. pf (equ m m)
+
+  eque : /\m1:val./\m2:val./\x:nat.
+          /\p:for./\q:for./\r:for.
+           pf (equ m1 m2) -> 
+           pf (substfor x m1 p q) ->
+           pf q ->
+           pf (substfor x m2 p r) ->
+           pf r
+
+  alli : /\x:nat./\x0:nat./\p:for./\q:for./\set1:set.
+           pf (fv_for p set1) ->              ;; [Q] Is this enough to show
+           pf (notxin x0 set1) ->             ;;     x0 is fresh?
+           pf (substfor x (var x0) p q) ->
+           pf q ->
+           pf (all x p)
+
+  alle : /\x:nat./\p:for./\q:for./\m:val.
+           pf (all x p) ->
+           pf (substfor x m p q) ->
+           pf q
+
+  existi : /\x:nat./\p:for./\m:val.
+            /\q:for.
+             pf (substfor x m p q) ->
+             pf q ->
+             pf (exist x p)
+
+  existe : /\x:nat./\x0:for./\p:for./\q:for./\r:for.
+            /\set1:set.
+             pf (exist x p) ->
+             pf (fv_for p set1) ->             ;; [Q] Is this enough to show
+             pf (notxin x0 set1) ->            ;;     x0 is fresh?
+             pf (substfor x (var x0) p q) ->
+             (pf q -> pf r) ->
+             pf r
+
+  augmentcty : for -> ty -> cty -> cty -> jaugmentcty   ;; C ~T~> F => F
+
+
+  vtyInEnv : x -> ty -> env -> jVtyInEnv       ;; (x:T) \isin E
+
+  vtyInEnv_sub :                               ;; (x:T) \isIn E,(a<:a') 
+    /\x1:nat./\ty1:ty./\env1:env.
+     /\a1:nat./\a2:nat.
+      pf (vtyInEnv x1 ty1 env1) ->
+      pf (vtyInEnv x1 ty1 
+                    (extenv env1 (sub a1 a2)))
+
+  vtyInEnv_svar :                              ;; (x:T) \isIn E, s
+    /\x1:nat./\ty1:ty./\env1:env.
+     /\s:nat.
+      pf (vtyInEnv x1 ty1 env1) ->
+      pf (vtyInEnv x1 ty1
+                        (extenv env1 (svar s))
+
+  vtyInEnv_vty_eq :                            ;; (x:T) \isIn E,(x:T) 
+    /\x1:nat./\ty1:ty./\env1:env./\mu1:mu.
+      pf (vtyInEnv x1 ty1 
+                    (extenv env1 (vty x1 ty1)))
+
+  vtyInEnv_vty_neq :                           ;; (x:T) \isIn E,(x',T')
+    /\x1:nat./\ty1:ty./\env1:env.              ;; if (x:T) \isIn E
+     /\x2:nat./\ty2:ty.
+      pf (neq_nat x1 x2) ->
+      pf (vtyInEnv x1 ty1 env1) ->
+      pf (vtyInEnv x1 ty1 (extenv env1 (vty x2 ty2)))
+
+
+  subInEnv : nat -> nat -> env -> jSubInEnv    ;; (a<:a') \isin E 
+
+  subInEnv_sub_eq :                            ;; (a<:a') \isin E,(a<:a')
+    /\a1:nat./\a2:nat./\env1:env.
+      pf (subInEnv a1 a2 
+                    (extenv env1 (sub a1 a2)))
+
+  subInEnv_sub_neq1 :                          ;; (a<:a') \isin E,(b<:b')
+    /\a1:nat./\a2:nat./\env1:env.
+     /\b1:nat./\b2:nat.
+      pf (neq_nat a1 b1) ->
+      pf (subInEnv a1 a2 env1) ->
+      pf (subInEnv a1 a2 
+                    (extenv env1 (sub b1 b2)))
+
+  subInEnv_sub_neq2 :                          ;; (a<:a') \isin E,(b<:b')
+    /\a1:nat./\a2:nat./\env1:env.
+     /\b1:nat./\b2:nat.
+      pf (neq_nat a2 b2) ->
+      pf (subInEnv a1 a2 env1) ->
+      pf (subInEnv a1 a2 
+                    (extenv env1 (sub b1 b2)))
+
+  subInEnv_svar :                              ;; (a<:a') \isin E,s
+    /\a1:nat./\a2:nat./\env1:env./\s:nat.
+      pf (subInEnv a1 a2 env1) ->
+      pf (subInEnv a1 a2 
+                         (extenv env1 (svar s))
+
+  subInEnv_vty :                               ;; (a<:a') \isin E,(x:T)
+    /\a1:nat./\a2:nat./\env1:env.
+     /\x1:nat./\ty1:ty.
+      pf (subInEnv a1 a2 env1) ->
+      pf (subInEnv a1 a2 (extenv env1 x1 ty1))
+
+
+  hty : h -> ty -> ty -> jhty ;; h : (T,U)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Substitution for Value Type
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+  substty  : nat -> val -> ty -> ty -> jsubstty    ;; U{M/x}
+
+  subst_tyvar  :
+     /\a1:nat./\n:nat./\val1:val.
+        pf (substty n val1 (tyvar a1) (tyvar a1))
+
+  subst_unitty :
+     /\n:nat./\val1:val.
+        pf (substty n val1 unitty unitty)
+
+  subst_depfun_eq :
+     /\x:nat./\ty1:ty./\ty2:ty./\cty1:cty.
+      /\n:nat./\val1:val.
+        pf (substty n val1 ty1 ty2) ->
+        pf (eq_nat x n) ->
+        pf (substty n val1 (depfun x ty1 cty1)
+                           (depfun x ty2 cty1))
+
+  subst_depfun_neq :
+     /\x:nat./\ty1:ty./\ty2:ty./\cty1:cty./\cty2:cty.
+      /\n:nat./\val1:val.
+        pf (substty n val1 ty1 ty2) ->
+        pf (neq_nat x n) ->
+        pf (substcty n val1 cty1 cty2) ->
+        pf (substty n val1 (depfun x ty1 cty1)
+                           (depfun x ty2 cty2))
+
+  subst_depsum_eq :
+     /\x:nat./\ty1:ty./\ty2:ty./\ty3:ty.
+      /\n:nat./\val1:val.
+        pf (substty n val1 ty1 ty3) ->
+        pf (eq_nat x n) ->
+        pf (substty n val1 (depsum x ty1 ty2)
+                           (depsum x ty3 ty2))
+
+  subst_depsum_neq :
+     /\x:nat./\ty1:ty./\ty2:ty./\ty3:ty./\ty4:ty.
+      /\n:nat./\val1:val.
+        pf (substty n val1 ty1 ty3) ->
+        pf (neq_nat x n) ->
+        pf (substty n val1 ty2 ty4) ->
+        pf (substty n val1 (depsum x ty1 ty2)
+                           (depsum x ty3 ty4))
+
+  subst_sum : 
+     /\ty1:ty./\ty2:ty./\ty3:ty./\ty4:ty.
+      /\n:nat./\val1:val.
+        pf (substty n val1 ty1 ty3) ->
+        pf (substty n val1 ty2 ty4) ->
+        pf (substty n val1 (sum ty1 ty2) (sum ty3 ty4))
+
+  subst_rec :
+     /\a1:nat./\ty1:ty./\ty2:ty.
+      /\n:nat./\val1:val.
+        pf (substty n val1 ty1 ty2) ->
+        pf (substty n val1 (rec a1 ty1) (rec a1 ty2))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Substitution for Computation Type
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+  substcty : nat -> val -> cty -> cty -> jsubstcty ;; F{M/x}
+
+  substcty_tri :
+     /\s1:nat./\for1:for.
+      /\x1:nat./\ty1:ty.
+      /\s2:nat./\for2:for.
+      /\ty2:ty.
+      /\n:nat./\val1:val.
+        pf (substty  n val1 ty1  ty2) ->
+        pf (substcty n val1 (tri s1 for1 x1 ty1 s2 for2)
+                            (tri s1 for1 x1 ty2 s2 for2))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Substitution for Formula
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+  substfor : nat -> val -> for -> for -> jsubstfor
+
+  substfor_equ :
+     /\x:nat./\m:val./\m1:val./\m2:val.
+      /\m3:val./\m4:val.
+       pf (substval x m m1 m3) ->
+       pf (substval x m m2 m4) ->
+       pf (substval x m (equ m1 m2) (equ m3 m4))
+
+  substfor_not : 
+     /\x:nat./\m:val./\m1:val.
+      /\m2:val.
+       pf (substval x m m1 m2) ->
+       pf (substval x m (not m1) (not m2))
+
+  substfor_and :
+     /\x:nat./\m:val./\m1:val./\m2:val.
+      /\m3:val./\m4:val.
+       pf (substval x m m1 m3) ->
+       pf (substval x m m2 m4) ->
+       pf (substval x m (and m1 m2) (and m3 m4))
+
+  substfor_or :
+     /\x:nat./\m:val./\m1:val./\m2:val.
+      /\m3:val./\m4:val.
+       pf (substval x m m1 m3) ->
+       pf (substval x m m2 m4) ->
+       pf (substval x m (or m1 m2) (or m3 m4))
+     
+  substfor_imp :
+     /\x:nat./\m:val./\m1:val./\m2:val.
+      /\m3:val./\m4:val.
+       pf (substval x m m1 m3) ->
+       pf (substval x m m2 m4) ->
+       pf (substval x m (imp m1 m2) (imp m3 m4))
+
+  substfor_all_eq : 
+     /\x:nat./\m:val.
+      /\x1:nat./\p:for.
+       pf (eq_nat x x1) ->
+       pf (substfor x m (all x1 p) (all x1 p))
+
+  substfor_all_neq :
+     /\x:nat./\m:val./\p:for.
+      /\x1:nat./\q:for.
+       pf (neq_nat x x1) ->
+       pf (substfor x m p q) ->
+       pf (substfor x m (all x1 p) (all x1 q))
+
+  substfor_exist_eq :
+     /\x:nat./\m:val.
+      /\x1:nat./\p:for.
+       pf (eq_nat x x1) ->
+       pf (substfor x m (exist x1 p) (exist x1 p))
+
+  substfor_exist_neq :
+     /\x:nat./\m:val./\p:for.
+      /\x1:nat./\q:for.
+       pf (neq_nat x x1) ->
+       pf (substfor x m p q) ->
+       pf (substfor x m (exist x1 p) (exist x1 q))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Substitution for Value
+;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+  substval : nat -> val -> val -> val -> jsubstval
+
+  substval_var_eq :
+    /\x:nat./\m:val./\x1:nat.
+      pf (eq_nat x x1) ->
+      pf (substval x m (var x1) m)
+
+  substval_var_neq :
+    /\x:nat./\m:val./\x1:nat.
+      pf (neq_nat x x1) ->
+      pf (substval x m (var x1) (var x1)
+
+  substval_unit :
+    /\x:nat./\m:val. pf (substval x m unit unit)
+
+  substval_fun_eq :
+    /\x:nat./\m:val./\y:nat./\e:exp.
+      pf (eq_nat x y) ->
+      pf (substval x m (fun y e) (fun y e))
+
+  substval_fun_neq :
+    /\x:nat./\m:val./\y:nat./\e:exp.
+     /\e':exp.
+      pf (neq_nat x y) ->
+      pf (substexp x m e e') ->
+      pf (substval x m (fun y e) (fun y e'))
+
+  substval_pair :
+    /\x:nat./\m:val./\m1:val./\m2:val.
+     /\m1':val./\m2':val.
+      pf (substval x m m1 m1') ->
+      pf (substval x m m2 m2') ->
+      pf (substval x m (pair m1 m2) (pair m1' m2'))
+
+  substval_const :
+    /\x:nat./\m:val./\h1:h./\m1:val.
+     /\m1':val.
+      pf (substval x m m1 m1') ->
+      pf (substval x m (h m1) (h m1'))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Substitution for Expression
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+  substexp : nat -> val -> exp -> exp -> jsubstexp
+
+  substexp_lift :
+    /\x:nat./\m:val./\m1:val./\m1':val.
+      pf (substval x m m1 m1') ->
+      pf (substval x m (lift m1) (lift m1'))
+
+  substexp_app :
+    /\x:nat./\m:val./\m1:val./\m2:val.
+     /\m1':val./\m2':val.
+      pf (substval x m m1 m1') ->
+      pf (substval x m m2 m2') ->
+      pf (substval x m (app m1 m2) (app m1' m2'))
+
+  substexp_eq :
+    /\x:nat./\m:val./\m1:val./\m2:val.
+     /\m1':val./\m2':val.
+      pf (substval x m m1 m1') ->
+      pf (substval x m m2 m2') ->
+      pf (substval x m (eq m1 m2) (eq m1' m2'))
+
+  substexp_let_eq :
+    /\x:nat./\m:val./\y:nat./\e1:exp./\e2:exp.
+     /\e1':exp./\e2':exp.
+      pf (substexp x m e1 e1') ->
+      pf (eq_nat x y) ->
+      pf (substexp x m (let y e1 e2) (let y e1' e2))
+
+  substexp_let_neq ;
+    /\x:nat./\m:val./\y:nat./\e1:exp./\e2:exp.
+     /\e1':exp./\e2':exp.
+      pf (substexp x m e1 e1') ->
+      pf (neq_nat x y) ->
+      pf (substexp x m e2 e2') ->
+      pf (substexp x m (let y e1 e2) (let y e1' e2'))
+
+  substexp_split_eq_1 :
+    /\x:nat./\m:val./\y1:nat./\y2:nat./\m1:val./\e:exp.
+     /\m1':val.
+      pf (substval x m m1 m1') ->
+      pf (eq_nat x y1) ->
+      pf (substexp x m (split y1 y2 m1 e) (split y1 y2 m1' e))
+
+  substexp_split_eq_2 :
+    /\x:nat./\m:val./\y1:nat./\y2:nat./\m1:val./\e:exp.
+     /\m1':val.
+      pf (substval x m m1 m1') ->
+      pf (eq_nat x y2) ->
+      pf (substexp x m (split y1 y2 m1 e) (split y1 y2 m1' e))
+   
+  substexp_split_neq :
+    /\x:nat./\m:val./\y1:nat./\y2:nat./\m1:val./\e:exp.
+     /\m1':val./\e':exp.
+      pf (substval x m m1 m1') ->
+      pf (neq_nat x y1) ->
+      pf (neq_nat x y2) ->
+      pf (substexp x m e e') ->
+      pf (substexp x m (split y1 y2 m1 e) (split y1 y2 m1' e'))
+
+  substexp_match_eq :
+    /\x:nat./\m:val./\m1:val./\h1:h./\y:nat./\e1:exp./\e2:exp.
+     /\m1':val./\e2':exp.
+      pf (substval x m m1 m1') ->
+      pf (substexp x m e2 e2') ->
+      pf (eq_nat x y) ->
+      pf (substexp x m (match m1 h y e1 e2) (match m1' h y e1 e2'))
+
+  substexp_match_neq :
+    /\x:nat./\m:val./\m1:val./\h1:h./\y:nat./\e1:exp./\e2:exp.
+     /\m1':val./\e1':exp./\e2':exp.
+      pf (substval x m m1 m1') ->
+      pf (substexp x m e1 e1') ->
+      pf (substexp x m e2 e2') ->
+      pf (neq_nat x y) ->
+      pf (substexp x m (match m1 h y e1 e2) (match m1' h y e1' e2'))
+
+  substexp_get : 
+    /\x:nat./\m:val. pf (substexp x m get get)
+
+  substexp_set :
+    /\x:nat./\m:val./\m1:val./\m1':val.
+      pf (substval x m m1 m1') ->
+      pf (substexp x m (set m1) (set m1'))
+
+  substexp_assume :
+    /\x:nat./\m:val./\s:nat./\p:for./\q:for.
+      pf (substfor x m p q) ->
+      pf (substfor x m (assume s p) (assume s q))
+
+  substexp_assert :
+    /\x:nat./\m:val./\s:nat./\p:for./\q:for.
+      pf (substfor x m p q) ->
+      pf (substfor x m (assert s p) (assert s q))
+      
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Unfolding for Value Type
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+  unfold : nat -> ty -> ty -> ty -> junfold       ;; a -> T -> T{mu a.T/a}
+
+  unfold_tyvar_eq : 
+     /\n1:nat./\ty1:ty.
+      /n2:nat.
+        pf (eq_nat n1 n2) ->
+        pf (unfold n1 ty1 (tyvar n2) ty1)
+
+  unfold_tyvar_neq :
+     /\n1:nat./\ty1:ty.
+      /\n2:nat.
+        pf (neq_nat n1 n2) ->
+        pf (unfold n1 ty1 (tyvar n2) (tyvar n2))
+
+  unfold_unitty :
+     /\n1:nat./\ty1:ty.
+        pf (unfold n1 ty1 unitty unitty)
+
+  unfold_depfun : 
+     /\n1:nat./\ty1:ty.
+      /\ty2:ty./\ty3:ty.
+      /\cty1:cty./\cty2:cty.
+        pf (unfold n1 ty1 ty2 ty3) ->
+        pf (unfold_cty n1 ty1 cty1 cty2) ->
+        pf (unfold n1 ty1 (depfun x ty2 cty1)
+                          (depfun x ty3 cty2))
+
+  unfold_depsum :
+     /\n1:nat./\ty1:ty.
+      /\ty2:ty./\ty3:ty./\ty4:ty./\ty5:ty.
+        pf (unfold n1 ty1 ty2 ty4) ->
+        pf (unfold n1 ty1 ty3 ty5) ->
+        pf (unfold n1 ty1 (depsum x ty2 ty3)
+                          (depsum x ty4 ty5))
+
+  unfold_sum :
+     /\n1:nat./\ty1:ty.
+      /\ty2:ty./\ty3:ty./\ty4:ty./\ty5:ty.
+        pf (unfold n1 ty1 ty2 ty4) ->
+        pf (unfold n1 ty1 ty3 ty5) ->
+        pf (unfold n1 ty1 (sum ty2 ty3) (sum ty4 ty5))
+
+  unfold_rec_eq :
+     /\n1:nat./\ty1:ty.
+      /\n2:nat./\ty2:ty.
+        pf (eq_nat n1 n2) ->
+        pf (unfold n1 ty1 (rec n2 ty2) (rec n2 ty2))
+
+  unfold_rec_neq :
+     /\n1:nat./\ty1:ty.
+      /\n2:nat./\ty2:ty./\ty3:ty.
+        pf (neq_nat n1 n2) ->
+        pf (unfold n1 ty1 ty2 ty3) ->
+        pf (unfold n1 ty1 (rec n2 ty2) (rec n2 ty3))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Unfolding for Computation Type
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+  unfold_cty : nat -> ty -> cty -> cty -> junfoldcty
+
+  unfold_tri :
+     /\n1:nat./\ty1:ty.
+      /\s1:nat./\for1:for./\x:nat./\ty2:ty./\s2:nat./\for2:for.
+      /\ty3:ty.
+        pf (unfold n1 ty1 ty2 ty3) ->
+        pf (unfold_cty n1 ty1 (tri s1 for1 x ty2 s2 for2)
+                              (tri s1 for1 x ty3 s2 for2))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Rules for Well-Formedness    
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    
+  ;; ENV EMPTY
+  env_empty : pf (wfenv empenv)
+    
+  ;; (ENV ENTRY)
+  env_entry : /\env1:env./\mu1:mu.
+                /\set1:set./\set2:set./\set3:set./\set4:set.
+                /\set5:set.
+                   pf (wfenv env) ->
+                   pf (fv_mu mu1 set1) ->
+                   pf (fov env1 set2) ->
+                   pf (subseteq set1 set2) ->
+                   pf (dom_mu mu1 set3) ->
+                   pf (dom_env env1 set4) ->
+                   pf (intersect set3 set4 set5) ->
+                   pf (isempty set5) ->
+                   pf (wfenv (extenv env1 mu1))
+                       
+  ;; (FORM)                       
+  env_form  : /\env1:env./\c1:for.
+                /\set1:set./\set2:set.
+                  pf (wfenv env1) ->
+                  pf (fo_for c1) ->
+                  pf (fv_for c1 set1) ->
+                  pf (fov env1 set2) ->
+                  pf (subseteq set1 set2) ->
+                  pf (wffofor env1 c1)
+                       
+  ;; (ENV TYPE)
+  env_type  : /\env1:env./\t1:ty.
+                /\set1:set./\set2:set.
+                  pf (wfenv env1) ->
+                  pf (fvty t1 set1) ->
+                  pf (fov env1 set2) ->
+                  pf (subseteq set1 set2) ->
+                  pf (wfty env1 t1)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Rules for Expressions
+;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+  ;; (EXP RETURN)
+  exp_return : 
+    /\env1:env./\val1:val./\s0:nat./\s1:nat.
+      /\x1:nat./\ty1:ty.
+        pf (hasty (extenv env1 (svar s0)) val1 ty1) ->
+        pf (hascty env1 (lift val1)
+                         (tri s0 true x1 ty1 s1
+                            (equ (var s0) (var s1))))
+
+  ;; (STATEFUL EXP LET)
+  stateful_exp_let :
+    /\env1:env./\x1:nat./\x2:nat./\x3:nat.
+      /\exp1:exp./\exp2:exp.
+      /\s0:nat./\s1:nat./\s2:nat.
+      /\for0:for./\for1:for./\for2:for.
+      /\ty1:ty./\ty2:ty.
+      /\set1:set./\set2:set./\set3:set./\set4:set./\set5:set.
+        pf (hascty env1 exp1 s0 for0 x1 ty1 s1 for1) ->
+        pf (hascty (extenv 
+                     (extenv env1 
+                       (svar s0)) (vty x1 ty1))
+                   exp2 s1 for1 x2 ty2 s2 for2) ->
+        pf (fv_ty ty2 set1) ->
+        pf (fv_for for2 set2) ->
+        pf (union (set_x s1) (set_x x1) set4) ->
+        pf (union set1 set2 set5) ->
+        pf (intersect set4 set5 set3) ->
+        pf (isempty set3) ->
+        pf (hascty env1 (let x1 exp1 exp2)
+                   (tri s0 for0 x2 ty2 s2 for2))
+
+  ;; (EXP EQ)
+  exp_eq : 
+    /\env1:env./\val1:val./\val2:val.
+      /\s0:nat./\s1:nat./\x1:nat.
+      /\ty1:ty./\ty2:ty.
+      /\set1:set./\set2:set./\set3:set.
+      (/\for1:for.
+        pf (hasty env1 val1 ty1) ->
+        pf (hasty env1 val2 ty2) ->
+        pf (fv_val val1 set1) ->
+        pf (fv_val val2 set2) ->
+        pf (union set1 set2 set3) ->
+        pf (notxin x1 set3) ->
+        pf (wffofor (extenv 
+                       (extenv 
+                          env1 (svar s0)) (svar s1)) for1) ->
+        pf (fo_ty ty1) ->
+        pf (fo_ty ty2) ->
+        pf (hascty env1 (eq val1 val2) s0 true x1 bool s1 for1)
+      ) (and (equ (var s0) (var s1)) 
+             (iff (equ (var x1) true_val) (equ val1 val2)))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Assumptions and Assertions
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+  ;; (EXP ASSUME)
+  exp_assume : 
+    /\env1:env./\s0:nat./\s1:nat./\for1:for./\x1:nat.
+        pf (wfenv (extenv 
+                     (extenv 
+                        env1 (svar s0)) (svar s1))) ->
+        pf (wffofor (extenv env1 (svar s0)) for1) ->
+        pf (hascty env1 (assume s0 for1)
+                   (tri s0 true x1 unitty s1
+                        (and (equ (var s0) (var s1)) for1)))
+
+  ;; (EXP ASSERT)
+  exp_assert :
+    /\env1:env./\s0:nat./\s1:nat./\for1:for.
+        pf (wfenv (extenv 
+                     (extenv env1 (svar s0))
+                     (svar s1))) ->
+        pf (wffofor (extenv
+                       (extenv env1 (svar s0)))
+                    for1)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Rules for State Manipulation
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+  ;; (STATEFUL GET)
+  stateful_get : 
+    /\env1:env./\s0:nat./\s1:nat./\x1:nat.
+        pf (wfenv (extenv
+                     (extenv 
+                        (extenv env1 (svar s0))
+                        (vty x1 state))
+                     (svar s1))) ->
+        pf (hascty env1 get s0 true x1 state s1
+              (and (equ (var x1) (var s0))
+                   (equ (var s1) (var s0))))
+
+  ;; (STATEFUL SET)
+  stateful_set :
+    /\env1:env./\s0:nat./\s1:nat./\val1:val./\x1:nat.
+        pf (hasty env1 val1 state) ->
+        pf (wfenv env1 (extenv 
+                          (extenv 
+                             env1 (svar s0)) (svar s1))) ->
+        pf (hascty env1 (set val1) 
+                   (tri s0 true x1 unitty s1 (equ (var s1) val1)))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Subtyping for Computations
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+  ;; (SUBTYPING FOR COMPUTATIONS)
+  sub_comp : 
+    /\env1:env./\s0:nat./\s1:nat./\x1:nat.
+      /\ty1:ty./\ty1':ty.
+      /\for0:for./\for1:for.
+      /\for0':for./\for1':for.
+        pf (wffofor (extenv env1 (svar s0)) for0) ->
+        pf (wffofor (extenv env1 (svar s0)) for0') ->
+        pf (wffofor (extenv (extenv (extenv env1 
+                       (svar s0)) 
+                       (vty x1 ty1)) 
+                       (svar s1)) for1) ->
+        pf (wffofor (extenv (extenv (extenv env1 
+                       (svar s0)) 
+                       (vty x1 ty1')) 
+                       (svar s1)) for1') ->
+        pf (sequent for0' for0) ->
+        pf (subty (extenv env1 (svar s0)) ty1 ty1') ->
+        pf (sequent (and for0' for1) for1') ->
+        pf (subcty env1 (tri s0 for0  x1 ty1  s1 for1)
+                        (tri s0 for0' x1 ty1' s1 for1'))
+
+  ;; (EXP SUBSUM)
+  exp_subsum :
+    /\env1:env./\exp1:exp./\cty1:cty./\cty1':cty.
+        pf (hascty env1 exp1 cty1) ->
+        pf (subcty env1 cty1 cty1') ->
+        pf (env1 exp1 cty1')
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; AUGMENTING THE PRECONDITION OF A COMPUTATION TYPE
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+  ;; IF T FIRST-ORDER
+  augmentcty_fo :
+    /\for0:for./\ty0:ty./\s1:nat./\for1:for.
+      /\x1:nat./\ty1:ty./\s2:nat./\for2:for.
+      /\set0:set.
+        pf (fo_ty ty0) ->
+        pf (fv_for for0 set0) ->
+        pf (notxin s1 set0) ->
+        pf (augmentcty for0 ty0 
+                       (tri s1 (and for0 for1) x1 ty1 s2 for2))
+
+  ;; OTHERWISE
+  augmentcty_otherwise :
+    /\for0:for./\ty0:ty./\s1:nat./\for1:for.
+      /\x1;x./\ty1:ty./\s2:nat./\for2:for.
+      /\set0:set.
+        pf (fv_for for0 set0) ->
+        pf (notxin s1 set0) ->
+        pf (augmentcty for0 ty0
+                       (tri s1 for1 x1 ty1 s2 for2))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Rules for Unit and Variables
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+  ;; (VAL UNIT)
+  val_unit : 
+    /\env1:env.
+        pf (wfenv env1) ->
+        pf (hasty env1 unit unitty)
+
+  ;; (VAL VAR)
+  val_pair :
+    /\env1:env./\x1:nat./\ty1:ty.
+        pf (wfenv env1) ->
+        pf (vtyInEnv x1 ty1 env1) ->
+        pf (hasty env1 x1 ty1)
+
+
+;;;;;;;;;;;;;;;;;;;;
+;; Rules for Pairs
+;;;;;;;;;;;;;;;;;;;;
+
+  ;; (VAL PAIR)
+  val_pair :
+    /\env1:env./\val1:val./\val2:val.
+      /\x1:nat./\ty1:ty./\ty2:ty./\ty3.ty.
+        pf (hasty env1 val1 ty1) ->
+        pf (substty x1 val1 ty1 ty3) ->
+        pf (hasty env1 val2 ty3) ->
+        pf (hasty env1 (pair val1 val2) (depsum x1 ty1 ty2))
+
+  ;; (STATEFUL_EXP_SPLIT)
+  stateful_exp_split :
+    /\env1:env./\x1:nat./\x2:nat./\val1:val./\exp1:exp.
+      /\cty1:cty./\cty2:cty.
+      /\ty1:ty./\ty2:ty./\set1:set./\set2:set./\set3:set.
+        pf (hasty env1 val1 (depsum x1 ty1 ty2) ->
+        pf (augmentcty (equ (pair (var x1) 
+                                  (var x2)) val1)
+                       (depsum x1 ty1 ty2)
+                       cty1 cty2) ->
+        pf (hascty (extenv (extenv env1 
+                      (vty x1 ty1))
+                      (vty x2 ty2)) exp1 cty2) ->
+        pf (fv_cty cty1 set1) ->
+        pf (union (set_x x1) (set_x x2) set3) ->
+        pf (intersect set3 set1 set2) ->
+        pf (isempty set2) ->
+        pf (hascty env1 (let x1 y1 val1 exp1) cty1)
+
+  
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Rules for Sums and Recursive Types
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+  ;; INL
+  jhty_inl  : /\ty1:ty./\ty2:ty.pf (jhty inl ty1 (sum ty1 ty2))
+
+  ;; INR
+  jhty_inr  : /\ty1:ty./\ty2:ty.pf (jhty inr ty2 (sum ty1 ty2))
+
+  ;; FOLD
+  jhty_fold : /\a1:nat./\ty1:ty./\ty2:ty.
+                  pf (unfold a1 (rec a1 ty1) ty1 ty2) ->
+                  pf (jhty fold ty2 (rec a1 ty1))
+
+
+  ;; VAL INL INR FOLD
+  val_inl_inr_fold :
+    /\env1:env./\h1:h./\val1:val./\ty1:ty./\ty2:ty.
+        pf (jhty h ty1 ty2) ->
+        pf (hasty env1 val1 ty1) ->
+        pf (wfty env1 ty2) ->
+        pf (hasty env1 (const h1 val1) ty2)
+
+  ;; STATEFUL EXP MATCH INL INR FOLD
+  stateful_exp_match_inl_inr_fold :
+    /\env1:env./\val1:val./\h1:h./\x1:nat.
+      /\exp1:exp./\exp2:exp.
+      /\cty1:cty./\cty2:cty./\cty3:cty.
+      /\ty1:ty./\ty2:ty.
+      /\set1:set.
+        pf (hasty env1 val1 ty1) ->
+        pf (jfty h1 ty2 ty1) ->
+        pf (fv_cty cty1 set1) ->
+        pf (notxin x1 set1) ->
+        pf (augmentcty (equ (const h1 (var x1)) val1)
+                       ty2 cty1 cty2) ->
+        pf (augmentcty (all x1 
+                          (not (equ (const h1 (var x1)) 
+                                    val1))) 
+                       ty2 cty1 cty3) ->
+        pf (hascty (extenv env1 (vty x1 ty1)) exp1 cty2) ->
+        pf (hascty env1 exp2 cty3) ->
+        pf (hascty env (match val1 h1 x1 exp1 exp2) cty1)
+
+;;;;;;;;;;;;;;;;;;;;;;;
+;; Rules for Functions
+;;;;;;;;;;;;;;;;;;;;;;;
+
+  ;; STATEFUL VAL FUN
+  stateful_val_fun : 
+    /\env1:env./\x1:nat./\exp1:exp./\ty1:ty./\cty1:cty.
+        pf (hascty (extenv env1 (vty x1 ty1)) exp1 cty1 ->
+        pf (hasty env1 (fun x1 exp1) (depfun x1 ty1 cty1))
+
+  ;; STATEFUL EXP APPL
+  stateful_exp_appl :
+    /\env1:env./\val1:val./\val2:val./\cty1:cty./\x1:nat.
+      /\ty1:ty./\cty2:cty.
+        pf (hasty env1 val1 (depfun x1 ty1 cty1)) ->
+        pf (hasty env1 val2 ty1) ->
+        pf (substcty x1 val2 cty1 cty2) ->
+        pf (hascty (app val1 val2) cty2)
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Subtyping for Value Types
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+  ;; SUB UNIT
+  sub_unit :
+    /\env1:env. 
+        pf (wfenv env1) ->
+        pf (subty env1 unitty unitty)
+
+  ;; SUB SUM
+  sub_sum :
+    /\env1:env./\ty1:ty./\ty1':ty./\ty2:ty./\ty2':ty.
+        pf (subty env1 ty1 ty1') ->
+        pf (subty env1 ty2 ty2') ->
+        pf (subty env1 (sum ty1 ty2) (sum ty1' ty2'))
+
+  ;; STATEFUL SUB FUN
+  stateful_sub_sum :
+    /\env1:env./\x1:nat./\ty1:ty./\ty1':ty.
+      /\cty1:cty./\cty2:cty.
+        pf (subty env1 ty1' ty1) ->
+        pf (subty (extenv env1 (vty x1 ty1')) cty1 cty1') ->
+        pf (subty env1 (depfun x1 ty1 cty1) (depfun x1 ty1' cty1'))
+
+  ;; SUB PAIR
+  sub_pair :
+    /\env1:env./\x1:nat./\ty1:ty./\ty1':ty./\ty2:ty./\ty2':ty.
+        pf (subty env1 ty1 ty1') ->
+        pf (subty (extenv (vty x1 ty1)) ty2 ty2') ->
+        pf (subty (depsum x1 ty1 ty2) (depsum x1 ty1' ty2'))
+
+  ;; SUB VAR
+  sub_var :
+    /\env1:env./\a1:nat./\a1':nat.
+        pf (wfenv env1) ->
+        pf (subInEnv a1 a1' env1) ->
+        pf (subty env1 (typvar a1) (tyvar a1'))
+
+  ;; SUB REC
+  sub_rec :
+    /\env1:env./\a1:nat./\a1':nat./\ty1:ty./\ty1':ty.
+      /\set1:set./\set2:set.
+        pf (subty (extenv env1 (sub a1 a1')) ty1 ty1') ->
+        pf (fv_ty ty1 set1) ->
+        pf (notain a1 set1) ->
+        pf (fv_ty ty1' set2) ->
+        pf (notain a1' set2) ->
+        pf (subty env1 (rec a1 ty1) (rec a1' ty1'))
+
