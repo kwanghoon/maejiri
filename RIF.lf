@@ -14,54 +14,84 @@
 
  ;; Syntactic Categories
 
- i : Type.    ;; Is this a good idea to use i?
- o : Type.    ;; The same question.
+ Val  : Type.  ;; Value
+ Prop : Type.  ;; Proposition
+
+ H : Type.     ;; h
 
  ;; Judgment
 
- T : o -> Type.
+ T : Prop -> Type.
 
 @term
 
+ ;; First-order Formula C
  ;; Operations
 
- equal  : i -> i -> o.
- not    : o -> o.
- imply  : o -> o -> o.
- exists : (i -> o) -> o.
- forall : (i -> o) -> o.
- conj   : o -> o -> o.
- disj   : o -> o -> o. 
+ equal  : Val  -> Val   -> Prop.
+ not    : Prop -> Prop.
+ imply  : Prop -> Prop  -> Prop.
+ exists : (Val -> Prop) -> Prop.
+ forall : (Val -> Prop) -> Prop.
+ conj   : Prop -> Prop  -> Prop.
+ disj   : Prop -> Prop  -> Prop. 
 
  ;; Axioms and Rules
 
- eq0 : /\x:i. T (equal x x).
- eq1 : /\x:i./\y:i./\t:i->i. T (equal x y) -> T (equal (t x) (t y)).
- eq2 : /\x:i./\y:i./\f:i->o. T (equal x y) -> T (f x) -> T (f y).
+ eq0 : /\x:Val. T (equal x x).
+ eq1 : /\x:Val./\y:Val./\t:Val->Val. T (equal x y) -> T (equal (t x) (t y)).
+ eq2 : /\x:Val./\y:Val./\f:Val->Prop. T (equal x y) -> T (f x) -> T (f y).
 
- not_i : /\phi:o./\psi:o. (T phi -> T psi) -> (T phi -> T (not psi)) -> T (not phi).
+ not_i : /\phi:Prop./\psi:Prop. (T phi -> T psi) -> (T phi -> T (not psi)) 
+              -> T (not phi).
 
- conj_i : /\phi:o./\psi:o.T phi -> T psi -> T (conj phi psi).
+ conj_i : /\phi:Prop./\psi:Prop.T phi -> T psi -> T (conj phi psi).
 
- disj_i_left  : /\phi:o./\psi:o. T phi -> T (disj phi psi).
- disj_i_right : /\phi:o./\psi:o. T psi -> T (disj phi psi).
+ disj_i_left  : /\phi:Prop./\psi:Prop. T phi -> T (disj phi psi).
+ disj_i_right : /\phi:Prop./\psi:Prop. T psi -> T (disj phi psi).
 
- conj_e_left  : /\phi:o./\psi:o. T (conj phi psi) -> T phi.
- conj_e_right : /\phi:o./\psi:o. T (conj phi psi) -> T psi.
+ conj_e_left  : /\phi:Prop./\psi:Prop. T (conj phi psi) -> T phi.
+ conj_e_right : /\phi:Prop./\psi:Prop. T (conj phi psi) -> T psi.
 
- notnot : /\phi:o. T (not (not phi)) -> T phi.
+ notnot : /\phi:Prop. T (not (not phi)) -> T phi.
 
- disj_e : /\phi:o./\psi:o./\nu:o. (T phi -> T nu) -> (T psi -> T nu) -> (T (disj phi psi) -> T nu).
+ disj_e : /\phi:Prop./\psi:Prop./\nu:Prop. (T phi -> T nu) -> (T psi -> T nu) 
+              -> (T (disj phi psi) -> T nu).
 
- imply_e : /\phi:o./\psi:o. (T (imply phi psi)) -> T phi -> T psi.
- imply_i : /\phi:o./\psi:o. (T phi -> T psi) -> T (imply phi psi).
+ imply_e : /\phi:Prop./\psi:Prop. (T (imply phi psi)) -> T phi -> T psi.
+ imply_i : /\phi:Prop./\psi:Prop. (T phi -> T psi) -> T (imply phi psi).
 
- exists_e : /\f:i->o./\phi:o. T (exists f) -> ((/\x:i. T (f x) -> T phi) -> T phi) -> T phi.
- exists_i : /\f:i->o./\t:i. T (f t) -> T (exists f).
- forall_e : /\f:i->o./\t:i. T (forall f) -> f t.
- forall_i : /\f:i->o. (/\t:i. T (f t)) -> T (forall f).
+ exists_e : /\f:Val->Prop./\phi:Prop. T (exists f) 
+              -> (/\x:Val. T (f x) -> T phi) -> T phi.
+ exists_i : /\f:Val->Prop./\t:Val. T (f t) -> T (exists f).
+ forall_e : /\f:Val->Prop./\t:Val. T (forall f) -> f t.
+ forall_i : /\f:Val->Prop. (/\t:Val. T (f t)) -> T (forall f).
+
+ ;; Value Constructor
+
+ inl  : H.     ;; h ::= inl
+ inr  : H.     ;;    |  inr
+ fold : H.     ;;    |  fold
+
+ ;; Value
+                                              ;; M,N ::= x
+ unit  : Val                                  ;;      |  ()
+ fun   : (Val -> Exp) -> Val                  ;;      |  fun x.A
+ pair  : Val -> Val -> Val                    ;;      |  (M,N)
+ const : H -> Val -> Val                      ;;      |  h M
+
+ ;; Expression
+
+ lift  : Val -> Exp                              ;; A,B ::= M
+ app   : Val -> Val -> Exp                       ;;      |  M N
+ eqexp : Val -> Val -> Exp                       ;;      |  M = N
+ let   : Exp -> (Val -> Exp) -> Exp              ;;      |  let x = A in B
+ split : Val -> (Val -> Val -> Exp) -> Exp       ;;      |  let (x,y) = M in B
+ match : Val -> (H -> Val -> Exp) -> Exp -> Exp  ;;      |  match M with 
+                                                 ;;          h x -> A
+                                                 ;;          else   B
 
 @def
 
  ; p1 : o
- p1 = imply (forall (\x:i. equal x x)) (exists (\x:i. equal x x)).
+ p1 = imply (forall (\x:Val. equal x x)) (exists (\x:Val. equal x x)).
