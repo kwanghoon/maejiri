@@ -15,57 +15,63 @@
  ;; Syntactic Categories
 
  Val  : Type.  ;; Value
- Prop : Type.  ;; Proposition
+ Exp  : Type.  ;; Expression
+ Form : Type.  ;; Formula
 
- H : Type.     ;; h
+ Ty   : Type.  ;; Value Type
+ CTy  : Type.  ;; Computation Type
+
+ H    : Type.     ;; h
 
  ;; Judgment
 
- T : Prop -> Type.
+ T    : Form -> Type.
 
 @term
 
  ;; First-order Formula C
  ;; Operations
 
- equal  : Val  -> Val   -> Prop.
- not    : Prop -> Prop.
- imply  : Prop -> Prop  -> Prop.
- exists : (Val -> Prop) -> Prop.
- forall : (Val -> Prop) -> Prop.
- conj   : Prop -> Prop  -> Prop.
- disj   : Prop -> Prop  -> Prop. 
+ equal  : Val  -> Val   -> Form.
+ not    : Form -> Form.
+ imply  : Form -> Form  -> Form.
+ exists : (Val -> Form) -> Form.
+ forall : (Val -> Form) -> Form.
+ conj   : Form -> Form  -> Form.
+ disj   : Form -> Form  -> Form. 
+
+ trueC  : Form.
 
  ;; Axioms and Rules
 
  eq0 : /\x:Val. T (equal x x).
  eq1 : /\x:Val./\y:Val./\t:Val->Val. T (equal x y) -> T (equal (t x) (t y)).
- eq2 : /\x:Val./\y:Val./\f:Val->Prop. T (equal x y) -> T (f x) -> T (f y).
+ eq2 : /\x:Val./\y:Val./\f:Val->Form. T (equal x y) -> T (f x) -> T (f y).
 
- not_i : /\phi:Prop./\psi:Prop. (T phi -> T psi) -> (T phi -> T (not psi)) 
+ not_i : /\phi:Form./\psi:Form. (T phi -> T psi) -> (T phi -> T (not psi)) 
               -> T (not phi).
 
- conj_i : /\phi:Prop./\psi:Prop.T phi -> T psi -> T (conj phi psi).
+ conj_i : /\phi:Form./\psi:Form.T phi -> T psi -> T (conj phi psi).
 
- disj_i_left  : /\phi:Prop./\psi:Prop. T phi -> T (disj phi psi).
- disj_i_right : /\phi:Prop./\psi:Prop. T psi -> T (disj phi psi).
+ disj_i_left  : /\phi:Form./\psi:Form. T phi -> T (disj phi psi).
+ disj_i_right : /\phi:Form./\psi:Form. T psi -> T (disj phi psi).
 
- conj_e_left  : /\phi:Prop./\psi:Prop. T (conj phi psi) -> T phi.
- conj_e_right : /\phi:Prop./\psi:Prop. T (conj phi psi) -> T psi.
+ conj_e_left  : /\phi:Form./\psi:Form. T (conj phi psi) -> T phi.
+ conj_e_right : /\phi:Form./\psi:Form. T (conj phi psi) -> T psi.
 
- notnot : /\phi:Prop. T (not (not phi)) -> T phi.
+ notnot : /\phi:Form. T (not (not phi)) -> T phi.
 
- disj_e : /\phi:Prop./\psi:Prop./\nu:Prop. (T phi -> T nu) -> (T psi -> T nu) 
+ disj_e : /\phi:Form./\psi:Form./\nu:Form. (T phi -> T nu) -> (T psi -> T nu) 
               -> (T (disj phi psi) -> T nu).
 
- imply_e : /\phi:Prop./\psi:Prop. (T (imply phi psi)) -> T phi -> T psi.
- imply_i : /\phi:Prop./\psi:Prop. (T phi -> T psi) -> T (imply phi psi).
+ imply_e : /\phi:Form./\psi:Form. (T (imply phi psi)) -> T phi -> T psi.
+ imply_i : /\phi:Form./\psi:Form. (T phi -> T psi) -> T (imply phi psi).
 
- exists_e : /\f:Val->Prop./\phi:Prop. T (exists f) 
+ exists_e : /\f:Val->Form./\phi:Form. T (exists f) 
               -> (/\x:Val. T (f x) -> T phi) -> T phi.
- exists_i : /\f:Val->Prop./\t:Val. T (f t) -> T (exists f).
- forall_e : /\f:Val->Prop./\t:Val. T (forall f) -> f t.
- forall_i : /\f:Val->Prop. (/\t:Val. T (f t)) -> T (forall f).
+ exists_i : /\f:Val->Form./\t:Val. T (f t) -> T (exists f).
+ forall_e : /\f:Val->Form./\t:Val. T (forall f) -> f t.
+ forall_i : /\f:Val->Form. (/\t:Val. T (f t)) -> T (forall f).
 
  ;; Value Constructor
 
@@ -75,23 +81,95 @@
 
  ;; Value
                                               ;; M,N ::= x
- unit  : Val                                  ;;      |  ()
- fun   : (Val -> Exp) -> Val                  ;;      |  fun x.A
- pair  : Val -> Val -> Val                    ;;      |  (M,N)
- const : H -> Val -> Val                      ;;      |  h M
+ unit  : Val.                                 ;;      |  ()
+ fun   : (Val -> Exp) -> Val.                 ;;      |  fun x.A
+ pair  : Val -> Val -> Val.                   ;;      |  (M,N)
+ const : H -> Val -> Val.                     ;;      |  h M
 
  ;; Expression
 
- lift  : Val -> Exp                              ;; A,B ::= M
- app   : Val -> Val -> Exp                       ;;      |  M N
- eqexp : Val -> Val -> Exp                       ;;      |  M = N
- let   : Exp -> (Val -> Exp) -> Exp              ;;      |  let x = A in B
- split : Val -> (Val -> Val -> Exp) -> Exp       ;;      |  let (x,y) = M in B
- match : Val -> (H -> Val -> Exp) -> Exp -> Exp  ;;      |  match M with 
+ lift  : Val -> Exp.                             ;; A,B ::= M
+ app   : Val -> Val -> Exp.                      ;;      |  M N
+ eqexp : Val -> Val -> Exp.                      ;;      |  M = N
+ let   : Exp -> (Val -> Exp) -> Exp.             ;;      |  let x = A in B
+ split : Val -> (Val -> Val -> Exp) -> Exp.      ;;      |  let (x,y) = M in B
+ match : Val -> (H -> Val -> Exp) -> Exp -> Exp. ;;      |  match M with 
                                                  ;;          h x -> A
                                                  ;;          else   B
+
+ get    : Exp.                                   ;;      |  get
+ set    : Val -> Exp.                            ;;      |  set M
+ assume : (Val -> Form) -> Exp.                  ;;      |  assume(s) C
+ assert : (Val -> Form) -> Exp.                  ;;      |  assert(s) C
+
+
+ ;; Value Type
+                                               ;; T,U,V ::= alpha
+ unitty   : Ty.                                ;;        |  unit
+ depfunty : (Ty -> CTy) -> Ty.                 ;;        |  Px:T.F
+ depsumty : (Ty -> Ty) -> Ty.                  ;;        |  Sx:T.U
+ sumty    : Ty -> Ty -> Ty.                    ;;        |  T+U
+ recty    : (Ty -> Ty) -> Ty.                  ;;        |  mu alpha.T
+
+ ;; Computation Type
+
+ ;tricty : Form -> Ty -> Form -> CTy.           ;; {(s0)C0} x:T {(s1)C1}
+    ;; versus
+    ;;  (/\s0:Val.Form -> Ty ->
+    ;;    /\x:Val./\s1:Val.Form) -> CTy.
+
 
 @def
 
  ; p1 : o
  p1 = imply (forall (\x:Val. equal x x)) (exists (\x:Val. equal x x)).
+
+
+ ;;;;;;;;;;;;;;;;;;
+ ;; Abbreviations
+ ;;;;;;;;;;;;;;;;;;
+
+ ;; A;B
+ seq = \A:Exp.\B:Exp. let A (\x:Val.B).
+
+ ;; false/true
+ false = const inl unit.
+ true  = const inr unit.
+
+ ;; if M then A else B
+ ite = \M:Val.\A:Exp.\B:Exp. match M (\h:H.\v:Val.A) B.
+
+ ;; let rec f x = A in B
+ ;; ???
+
+ ;; let f x = A in B
+ letfx = \A:Exp.\B:Exp.let (lift (fun (\x:Val.A))) (\f:Val. B).
+
+ ;; if A then B1 else B2
+ iteexp = \A:Exp.\B1:Exp.\B2:Exp. let A (\x:Val. ite x B1 B2).
+
+ ;; let (x,y) = A in B
+ letsplit = \A:Exp.\B:Exp. let A (\z:Val. split z (\x:Val.\y:Val. B)).
+
+
+ ;;;;;;;;;;;;;
+ ;; Examples
+ ;;;;;;;;;;;;;
+
+ ; tricty : Form -> Ty -> Form -> CTy.
+ ; mkCTy = \s1:Val.\c1:Form.\ty:Ty.\x:Val.\s2:Val.\c2:Form. tricty c1 ty c2.
+
+ ; cty1 = mkCTy unit trueC unitty unit unit trueC.
+
+
+ ; tricty :  (/\s0:Val.Form -> Ty ->
+ ;             /\x:Val./\s1:Val.Form) -> CTy
+ ; cty1 = tricty (\s0:Val.\)
+
+ ;; Write T as a shorthand for {(s0)True} T {(s1)s1=s2}
+ 
+ ;; tricty (\s0:Val. sumty (sumty trueC ty) (/\x:Val./\s1:Val. equal s1 s2))
+
+ ; short = \ty:Ty. tricty (\s0:Val. sumty (sumty trueC ty) 
+ ;                           (/\x:Val./\s1:Val. equal s0 s1)).
+
