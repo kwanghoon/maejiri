@@ -13,7 +13,7 @@ data K = Type | PiK X A K
        deriving Show
 
 -- Types
-data A = ConstA String | AppA A M | PiA X A A
+data A = ConstA String | AppA A M | PiA X A A  -- LamA X A A ???
        deriving Show                                    
 
 -- Objects

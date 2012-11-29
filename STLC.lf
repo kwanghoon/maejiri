@@ -1,0 +1,70 @@
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
+;; The Simply-Typed Lambda Calculus (STLC) in LF
+;;
+;; By Kwanghoon Choi
+;;
+;; Ref. twelf.org (Proving Metatheorems)
+;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+@type
+
+Tp    : Type.              ;; types in STLC
+
+Tm    : Type.              ;; terms in STLC
+value : Tm -> Type.        ;; values in STLC
+
+of    : Tm -> Tp -> Type.  ;; typing judgments in STLC
+
+step  : Tm -> Tm-> Type.   ;; operational semantics judgments in STLC
+
+preserv : /\t:Tp./\e:Tm./\e':Tm.   ;; Preservation in STLC
+           step e e'
+            -> of e t
+             -> of e' t
+              -> Type.
+
+@term
+
+;; Types
+unit  : Tp.
+arrow : Tp -> Tp -> Tp.
+
+;; Terms
+empty : Tm.
+app   : Tm -> Tm -> Tm.
+lam   : Tp -> (Tm -> Tm) -> Tm.
+
+;; Values
+value_empty : value empty.
+value_lam   : /\t:Tp./\e:Tm->Tm.value (lam t e).
+
+;; Typing rules
+of_empty : of empty unit.
+of_lam   : /\t:Tp./\t2:Tp./\e:Tm -> Tm.
+             (/\x:Tm. of x t2 -> of (e x) t)
+              -> of (lam t2 e) (arrow t2 t).
+of_app   : /\t:Tp./\t2:Tp./\e1:Tm./\e2:Tm.
+             of e2 t2
+              -> of e1 (arrow t2 t)
+               -> of (app e1 e2) t.
+
+;; Operational semantics
+step_app1 : /\e1:Tm./\e1':Tm./\e2:Tm.
+             step e1 e1' 
+              -> step (app e1 e2) (app e1' e2).
+step_app2 : /\e1:Tm./\e2:Tm./\e2':Tm.
+             value e1
+              -> step e2 e2'
+               -> step (app e1 e2) (app e1 e2').
+step_beta : /\t:Tp./\e:Tm -> Tm./\e2:Tm.
+             value e2
+              -> step (app (lam t e) e2) (e e2).
+
+
+;; ;; Type preservation
+;; preserv-app-1 :
+;; 	/\
+;; 	 preserv (step_app1 (dStepE1 : step e1 e1'))
+

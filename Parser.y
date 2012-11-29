@@ -31,6 +31,7 @@
 module Parser where
 
 import Data.Char
+import Data.List
 import AST
 
 dummy_var_name = "$d"
@@ -114,7 +115,26 @@ DefDecls: var '=' M '.'			{ [HasDef  (ConstM $1) $3] }
 {
 
 parseError :: [Token] -> a
-parseError _ = error "Parse error"
+parseError toks = error ("Parse error at " ++
+			 (concat 
+			  $ intersperse " " 
+			  $ map toStr 
+			  $ take 30 
+			  $ toks))
+
+toStr :: Token -> String
+toStr TokenType    = "Type"
+toStr TokenPi      = "/\\"
+toStr TokenLam     = "\\"
+toStr (TokenVar s) = s
+toStr TokenColon   = ":"
+toStr TokenDot     = "."
+toStr TokenOB      = "("
+toStr TokenCB      = ")"
+toStr TokenArrow   = "->"
+toStr (TokenAT s)  = "@"++s
+toStr TokenEQ      = "="
+toStr tok          = show tok
 
 
 data Token = TokenType

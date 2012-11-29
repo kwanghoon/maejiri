@@ -29,11 +29,12 @@
 module Parser where
 
 import Data.Char
+import Data.List
 import AST
 
 dummy_var_name = "$d"
 
--- parser produced by Happy Version 1.18.6
+-- parser produced by Happy Version 1.18.10
 
 data HappyAbsSyn t7 t8 t9 t10 t11 t12 t13 t14 t15 t16 t17 t18 t19
 	= HappyTerminal (Token)
@@ -686,7 +687,8 @@ happyNewToken action sts stk (tk:tks) =
 	_ -> happyError' (tk:tks)
 	}
 
-happyError_ tk tks = happyError' (tk:tks)
+happyError_ 33 tk tks = happyError' tks
+happyError_ _ tk tks = happyError' (tk:tks)
 
 newtype HappyIdentity a = HappyIdentity a
 happyIdentity = HappyIdentity
@@ -722,7 +724,26 @@ happySeq = happyDontSeq
 
 
 parseError :: [Token] -> a
-parseError _ = error "Parse error"
+parseError toks = error ("Parse error at " ++
+			 (concat 
+			  $ intersperse " " 
+			  $ map toStr 
+			  $ take 10 
+			  $ toks))
+
+toStr :: Token -> String
+toStr TokenType    = "Type"
+toStr TokenPi      = "/\\"
+toStr TokenLam     = "\\"
+toStr (TokenVar s) = s
+toStr TokenColon   = ":"
+toStr TokenDot     = "."
+toStr TokenOB      = "("
+toStr TokenCB      = ")"
+toStr TokenArrow   = "->"
+toStr (TokenAT s)  = "@"++s
+toStr TokenEQ      = "="
+toStr tok          = show tok
 
 
 data Token = TokenType
@@ -912,9 +933,10 @@ happyGoto action j tk st = action j j tk (HappyState action)
 -- Error recovery ((1) is the error token)
 
 -- parse error if we are in recovery and we fail again
-happyFail  (1) tk old_st _ stk =
+happyFail (1) tk old_st _ stk@(x `HappyStk` _) =
+     let (i) = (case x of { HappyErrorToken (i) -> i }) in
 --	trace "failing" $ 
-    	happyError_ tk
+        happyError_ i tk
 
 {-  We don't need state discarding for our restricted implementation of
     "error".  In fact, it can cause some bogus parses, so I've disabled it
@@ -962,7 +984,7 @@ happyDontSeq a b = b
 -- of deciding to inline happyGoto everywhere, which increases the size of
 -- the generated parser quite a bit.
 
-{-# LINE 311 "templates/GenericTemplate.hs" #-}
+{-# LINE 312 "templates/GenericTemplate.hs" #-}
 {-# NOINLINE happyShift #-}
 {-# NOINLINE happySpecReduce_0 #-}
 {-# NOINLINE happySpecReduce_1 #-}
