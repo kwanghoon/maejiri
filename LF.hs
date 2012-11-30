@@ -26,6 +26,7 @@ data Error = NotFound1   String ConstTypeEnv
            | NotMatched2 A A String
            | NotPiK      K
            | NotPiA      A
+           | AtError     String Error
            deriving Show
 
 addtype (cte1, cte2, vte) a = (cte1, cte2, a:vte)
@@ -159,3 +160,29 @@ typecheck ctx (App m1 m2) =
          Left t -> return $ Right (NotPiA t)
          rm1'   -> return $ rm1'
      }
+
+ctxcheck :: Ctx -> IO ()
+ctxcheck ctx@(kenv, tenv, venv) =
+  takeWhile maxErr
+     $ -- [loop (tyname, ???check ctx ki) | (tyname,ki) <- kenv]
+       -- ++ 
+       [loop (tmname, kindcheck ctx ty) | (tmname,ty) <- tenv]
+     
+  where
+    maxErr = 5
+    
+    loop (s,m) =
+      do r <- m
+         case r of
+           Left  res -> return r
+           Right err -> error $ "Error at " ++ s ++ " : " ++ show err   -- Right (AtError s err)
+
+    takeWhile n []  = return ()
+    takeWhile 0 ios = return ()
+    takeWhile n (io:ios) = 
+      do r <- io
+         case r of
+           Left _    -> takeWhile (n-1) ios
+           Right msg -> do putStrLn (show msg)
+                           takeWhile (n-1) ios
+                           

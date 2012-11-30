@@ -28,9 +28,13 @@ process ("-interactive":_) =
 process (filename:_) = 
   do h    <- openFile filename ReadMode
      text <- hGetContents h
+     putStrLn "Parsing..."
      let sigs = parseprog (lexer text)
+     let ctx  = toCtx sigs
      -- putStrLn (show sigs)
-     shell (toCtx sigs)
+     putStrLn "Checking..."
+     ctxcheck ctx
+     shell ctx
      hClose h
      
 shell ctx =     

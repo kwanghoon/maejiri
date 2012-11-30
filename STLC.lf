@@ -42,10 +42,10 @@ value_lam   : /\t:Tp./\e:Tm->Tm.value (lam t e).
 
 ;; Typing rules
 of_empty : of empty unit.
-of_lam   : /\t:Tp./\t2:Tp./\e:Tm -> Tm.
+of_lam   : /\t2:Tp./\t:Tp./\e:Tm -> Tm.
              (/\x:Tm. of x t2 -> of (e x) t)
               -> of (lam t2 e) (arrow t2 t).
-of_app   : /\t:Tp./\t2:Tp./\e1:Tm./\e2:Tm.
+of_app   : /\t2:Tp./\t:Tp./\e1:Tm./\e2:Tm.
              of e2 t2
               -> of e1 (arrow t2 t)
                -> of (app e1 e2) t.
@@ -63,8 +63,54 @@ step_beta : /\t:Tp./\e:Tm -> Tm./\e2:Tm.
               -> step (app (lam t e) e2) (e e2).
 
 
-;; ;; Type preservation
-;; preserv-app-1 :
-;; 	/\
-;; 	 preserv (step_app1 (dStepE1 : step e1 e1'))
+;; Type preservation
+preserv_app1 :
+	/\e1:Tm./\e1':Tm./\e2:Tm./\t2:Ty./\t:Ty.
+	 /\dStepE1 : step e1 e1'.
+	 /\dOfE1  : of e1  (arrow t2 t).
+	 /\dOfE1' : of e1' (arrow t2 t).
+	 /\dOfE2  : of e2  t2.
+	  preserv (arrow t2 t) e1 e1'
+                  dStepE1 dOfE1 dOfE1'
+	   -> preserv t (app e1 e2) (app e1' e2)
+                      (step_app1 
+                              e1 e1' e2
+                              dStepE1)
+	              (of_app t2 t 
+                              dOfE2 dOfE1)
+	              (of_app t2 t 
+                              dOfE2 dOfE1').
 
+preserv_app2 :
+        /\e1:Tm./\e2:Tm./\e2':Tm./\t2:Ty./\t:Ty.
+         /\dStepE2 : step e2 e2'.
+         /\dOfE1  : of e1 (arrow t2 t).
+         /\dOfE2  : of e2 t2.
+         /\dOfE2' : of e2' t2.
+         /\dValE1 : value e1.
+          preserv (arrow t2 t) e2 e2' 
+                  dStepE2 dOfE2 dOfE2'
+           -> preserv t2 (app e1 e2) (app e1 e2')
+                      (step_app2 
+                              e1 e2 e2'
+                              dValE1)
+                      (of_app t2 t
+                              dOfE2  dOfE1)
+                      (of_app t2 t 
+                              dOfE2' dOfE1).
+
+preserv_beta :
+        /\e:Tm->Tm./\e2:Tm./\t2:Ty./\t:Ty.
+         /\dOfE  : /\x:Tm. of x t2 -> of (e x) t.
+         /\dOfE2 : of e2 t2.
+         /\dVal : value e2.
+          preserv (step_beta              ;; step (app (lam t2 e) e2) (e e2)
+                          t2 e e2 
+                          dVal)           
+                  (of_app dOfE2           ;; of (app (lam t2 e) e2) T
+                          t2 t (lam t2 e) e2
+                          dOfE2
+                          (of_lam         ;; of (lam t2 e) (arrow t2 t)
+                                 t2 t e
+                                 dOfE))
+                  (dOfE e2 dOfE2).        ;; of (e e2) T
