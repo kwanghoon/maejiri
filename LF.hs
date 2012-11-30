@@ -22,7 +22,9 @@ data Error = NotFound1   String ConstTypeEnv
            | NotType1    K A
            | NotType2    K A
            | NotType3    K A
-           | NotMatched1 A A
+           | NotType4    A Error
+           | NotType5    A Error
+           | NotMatched1 A A A
            | NotMatched2 A A String
            | NotPiK      K
            | NotPiA      A
@@ -93,48 +95,50 @@ typewhnf (AppA a m)  =
 -- A checker for the LF type system
 ---------------------------------------------------------------------------------
     
-kindcheck :: Ctx -> A -> IO (Either K Error)
-kindcheck ctx (ConstA s) =
+typecheck :: Ctx -> A -> IO (Either K Error)
+typecheck ctx (ConstA s) =
   case sigmakindof s ctx of
     Just k1 -> return (Left k1)
     Nothing -> return (Right (NotFound1 s (fst3 ctx)))
-kindcheck ctx (PiA x a b) =
-  do { ra <- kindcheck ctx a
-     ; rb <- kindcheck (addtype ctx (shifttype 0 1 a)) b
+typecheck ctx (PiA x a b) =
+  do { ra <- typecheck ctx a
+     ; rb <- typecheck (addtype ctx (shifttype 0 1 a)) b
      ; case (ra, rb) of
          (Left Type, Left Type) -> return (Left Type)
          (Left Type, Left t)    -> return (Right (NotType1 t b))
          (Left Type, rt)        -> return rt
          (Left t,    Left Type) -> return (Right (NotType2 t a))
          (rt,        Left Type) -> return rt
-     }         
-kindcheck ctx (AppA a m) =
-  do { ra <- kindcheck ctx a
-     ; rm <- typecheck ctx m
+         (Right err, _)         -> return (Right (NotType4 a err))         
+         (_, Right err)         -> return (Right (NotType5 b err))
+     }
+typecheck ctx (AppA a m) =
+  do { ra <- typecheck ctx a
+     ; rm <- termcheck ctx m
      ; case ra of
          Left (PiK x b k) ->
            (case rm of
               Left b1 -> (if typeeqv b b1
                           then return $ Left (shiftkind 0 (-1)
                                      (substkind 0 (shiftterm 0 1 m) k))
-                          else return $ Right (NotMatched1 b b1))
+                          else return $ Right (NotMatched1 b b1 a))
               Right s -> return (Right s))
          Left b -> return (Right (NotPiK b))
          ra     -> return ra
      }
 
-typecheck :: Ctx -> M -> IO (Either A Error)
-typecheck ctx (ConstM s) =
+termcheck :: Ctx -> M -> IO (Either A Error)
+termcheck ctx (ConstM s) =
   case sigmatypeof s ctx of
     Nothing -> return $ Right (NotFound2 s (snd3 ctx))
     Just t  -> return $ Left t
-typecheck ctx (Var i n) =
+termcheck ctx (Var i n) =
   case typeof i ctx of 
     Nothing -> return $ Right (NotFound3 i (thr3 ctx))
     Just t  -> return $ Left t
-typecheck ctx (Lam x a m) = 
-  do { ra <- kindcheck ctx a
-     ; rm <- typecheck (addtype ctx (shifttype 0 1 a)) m
+termcheck ctx (Lam x a m) = 
+  do { ra <- typecheck ctx a
+     ; rm <- termcheck (addtype ctx (shifttype 0 1 a)) m
      ; case ra of
          Left Type ->
            (case rm of
@@ -143,9 +147,9 @@ typecheck ctx (Lam x a m) =
          Left t    -> return $ Right (NotType3 t a)
          Right err -> return $ Right err
      }
-typecheck ctx (App m1 m2) =
-  do { rm1 <- typecheck ctx m1
-     ; rm2 <- typecheck ctx m2
+termcheck ctx (App m1 m2) =
+  do { rm1 <- termcheck ctx m1
+     ; rm2 <- termcheck ctx m2
      ; case rm1 of
          Left (PiA x a1 b1) ->
            (case rm2 of
@@ -166,7 +170,7 @@ ctxcheck ctx@(kenv, tenv, venv) =
   takeWhile maxErr
      $ -- [loop (tyname, ???check ctx ki) | (tyname,ki) <- kenv]
        -- ++ 
-       [loop (tmname, kindcheck ctx ty) | (tmname,ty) <- tenv]
+       [loop (tmname, typecheck ctx ty) | (tmname,ty) <- tenv]
      
   where
     maxErr = 5
@@ -175,14 +179,15 @@ ctxcheck ctx@(kenv, tenv, venv) =
       do r <- m
          case r of
            Left  res -> return r
-           Right err -> error $ "Error at " ++ s ++ " : " ++ show err   -- Right (AtError s err)
+           Right err -> -- error $ "Error at " ++ s ++ " : " ++ show err 
+                        return $ Right (AtError s err)
 
     takeWhile n []  = return ()
     takeWhile 0 ios = return ()
     takeWhile n (io:ios) = 
       do r <- io
          case r of
-           Left _    -> takeWhile (n-1) ios
+           Left _    -> takeWhile n ios
            Right msg -> do putStrLn (show msg)
                            takeWhile (n-1) ios
                            

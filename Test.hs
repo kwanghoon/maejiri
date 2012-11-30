@@ -98,7 +98,7 @@ pccagent_ctx =
    [ (s,t) | HasType (ConstM s) t <- sig],
    [])
   
-regression_pcc1 = typecheck_term pf_mm 
+regression_pcc1 = termcheck_term pf_mm 
   
 typecheck_term pf_m =
   let ast = toDBIdxM $ parseterm $ lexer $ pf_m
@@ -106,7 +106,7 @@ typecheck_term pf_m =
    do { putStr "Term: ";
       ; putStrLn (show ast);
       ; putStr "Type: "; 
-      ; rast <- typecheck pccagent_ctx ast
+      ; rast <- termcheck pccagent_ctx ast
       ; case rast of
           Left t  -> do { prType [] t; putStrLn "" }
           Right e -> putStrLn (show e)

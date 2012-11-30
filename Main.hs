@@ -47,7 +47,7 @@ shell ctx =
      
 doComm ctx (':':'t':' ':text) = 
   do let term = toDBIdxM $ parseterm $ lexer $ text
-     res <- typecheck ctx term
+     res <- termcheck ctx term
      tychkResult res
   where
     tychkResult (Left ty)   = prType [] ty

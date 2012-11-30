@@ -63,9 +63,18 @@ step_beta : /\t:Tp./\e:Tm -> Tm./\e2:Tm.
               -> step (app (lam t e) e2) (e e2).
 
 
+test :
+	/\e1:Tm./\e1':Tm./\e2:Tm./\t2:Tp./\t:Tp.
+	 /\dStepE1 : step e1 e1'.
+	 /\dOfE1  : of e1  (arrow t2 t).
+	 /\dOfE1' : of e1' (arrow t2 t).
+	 /\dOfE2  : of e2  t2.
+	  preserv (arrow t2 t) e1 e1'
+                  dStepE1 dOfE1 dOfE1'.
+
 ;; Type preservation
 preserv_app1 :
-	/\e1:Tm./\e1':Tm./\e2:Tm./\t2:Ty./\t:Ty.
+	/\e1:Tm./\e1':Tm./\e2:Tm./\t2:Tp./\t:Tp.
 	 /\dStepE1 : step e1 e1'.
 	 /\dOfE1  : of e1  (arrow t2 t).
 	 /\dOfE1' : of e1' (arrow t2 t).
@@ -76,13 +85,13 @@ preserv_app1 :
                       (step_app1 
                               e1 e1' e2
                               dStepE1)
-	              (of_app t2 t 
+	              (of_app t2 t e1 e2
                               dOfE2 dOfE1)
-	              (of_app t2 t 
+	              (of_app t2 t e1' e2
                               dOfE2 dOfE1').
 
 preserv_app2 :
-        /\e1:Tm./\e2:Tm./\e2':Tm./\t2:Ty./\t:Ty.
+        /\e1:Tm./\e2:Tm./\e2':Tm./\t2:Tp./\t:Tp.
          /\dStepE2 : step e2 e2'.
          /\dOfE1  : of e1 (arrow t2 t).
          /\dOfE2  : of e2 t2.
@@ -100,17 +109,18 @@ preserv_app2 :
                               dOfE2' dOfE1).
 
 preserv_beta :
-        /\e:Tm->Tm./\e2:Tm./\t2:Ty./\t:Ty.
+        /\e:Tm->Tm./\e2:Tm./\t2:Tp./\t:Tp.
          /\dOfE  : /\x:Tm. of x t2 -> of (e x) t.
          /\dOfE2 : of e2 t2.
          /\dVal : value e2.
-          preserv (step_beta              ;; step (app (lam t2 e) e2) (e e2)
+          preserv t (app (lam t2 e) e2) (e e2)
+                  (step_beta              ;; step (app (lam t2 e) e2) (e e2)
                           t2 e e2 
                           dVal)           
-                  (of_app dOfE2           ;; of (app (lam t2 e) e2) T
+                  (of_app                 ;; of (app (lam t2 e) e2) t
                           t2 t (lam t2 e) e2
                           dOfE2
                           (of_lam         ;; of (lam t2 e) (arrow t2 t)
                                  t2 t e
                                  dOfE))
-                  (dOfE e2 dOfE2).        ;; of (e e2) T
+                  (dOfE e2 dOfE2).        ;; of (e e2) t
