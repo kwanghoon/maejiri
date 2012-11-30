@@ -65,11 +65,12 @@ typeeqv t1 t2 =
         (AppA a m, AppA b n)   -> typeeqv a b && termeqv m n
         (_, _)                 -> False
 
+-- Var 8i 9n vs. Var 5j 6m
 termeqv m1 m2 =
   let whnfm1 = termwhnf m1
       whnfm2 = termwhnf m2
   in  case (whnfm1, whnfm2) of      
-        (Var i n, Var j m)     -> i == j
+        (Var i n, Var j m)     -> n == m && i == j || n /= m && (n-m)+j == i
         (ConstM s, ConstM t)   -> s == t
         (Lam x a m, Lam y b n) -> typeeqv a b   && termeqv m n
         (App m1 m2, App m3 m4) -> termeqv m1 m3 && termeqv m2 m4

@@ -62,16 +62,6 @@ step_beta : /\t:Tp./\e:Tm -> Tm./\e2:Tm.
              value e2
               -> step (app (lam t e) e2) (e e2).
 
-
-test :
-	/\e1:Tm./\e1':Tm./\e2:Tm./\t2:Tp./\t:Tp.
-	 /\dStepE1 : step e1 e1'.
-	 /\dOfE1  : of e1  (arrow t2 t).
-	 /\dOfE1' : of e1' (arrow t2 t).
-	 /\dOfE2  : of e2  t2.
-	  preserv (arrow t2 t) e1 e1'
-                  dStepE1 dOfE1 dOfE1'.
-
 ;; Type preservation
 preserv_app1 :
 	/\e1:Tm./\e1':Tm./\e2:Tm./\t2:Tp./\t:Tp.

@@ -728,6 +728,8 @@
   fo_state  : pf (fo_ty state)
 
   ;; First-order Formula
+  ;;   A formula C is first-order if and only if it contains 
+  ;;   first-order values
   fo_for : for -> jforisfo ;; C is first-roder
 
   fo_equ : /\m1:val./\m2:val.
@@ -765,6 +767,9 @@
   fo_true  : pf (fo_for true)
 
   ;; First-order Value
+  ;;    A first-order value is any value not containing 
+  ;;    any instance of fun x -> A.
+
   fo_val : val -> jvalisfo ;; M is first-order
 
 

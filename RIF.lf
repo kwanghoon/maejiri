@@ -174,4 +174,5 @@
 
 
  ; To prove P -> P,
- ;; p_implies_p = \P:Form. imply_i P P (\z : T P. z).
+ ;; p_implies_p = \P:Form. imply_i P P (\z:T P. z).
+
