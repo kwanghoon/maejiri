@@ -25,7 +25,7 @@ data Error = NotFound1   String ConstTypeEnv
            | NotType4    A Error
            | NotType5    A Error
            | NotMatched1 A A A
-           | NotMatched2 A A String
+           | NotMatched2 A A M
            | NotPiK      K
            | NotPiA      A
            | AtError     String Error
@@ -122,7 +122,7 @@ typecheck ctx (AppA a m) =
               Left b1 -> (if typeeqv b b1
                           then return $ Left (shiftkind 0 (-1)
                                      (substkind 0 (shiftterm 0 1 m) k))
-                          else return $ Right (NotMatched1 b b1 a))
+                          else return $ Right (NotMatched1 b b1 (AppA a m)))
               Right s -> return (Right s))
          Left b -> return (Right (NotPiK b))
          ra     -> return ra
@@ -159,8 +159,7 @@ termcheck ctx (App m1 m2) =
                  then return $ Left (shifttype 0 (-1)
                                      (substtype 0
                                       (shiftterm 0 1 m2) b1))
-                 else return $ Right (NotMatched2 a1 a2
-                                      (show (App m1 m2))))
+                 else return $ Right (NotMatched2 a1 a2 (App m1 m2)))
               rm2'    -> return $ rm2')
          Left t -> return $ Right (NotPiA t)
          rm1'   -> return $ rm1'

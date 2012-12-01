@@ -84,18 +84,18 @@ preserv_app2 :
         /\e1:Tm./\e2:Tm./\e2':Tm./\t2:Tp./\t:Tp.
          /\dStepE2 : step e2 e2'.
          /\dOfE1  : of e1 (arrow t2 t).
-         /\dOfE2  : of e2 t2.
+         /\dOfE2  : of e2  t2.
          /\dOfE2' : of e2' t2.
          /\dValE1 : value e1.
-          preserv (arrow t2 t) e2 e2' 
+          preserv t2 e2 e2' 
                   dStepE2 dOfE2 dOfE2'
-           -> preserv t2 (app e1 e2) (app e1 e2')
+           -> preserv t (app e1 e2) (app e1 e2')
                       (step_app2 
                               e1 e2 e2'
-                              dValE1)
-                      (of_app t2 t
+                              dValE1 dStepE2)
+                      (of_app t2 t e1 e2
                               dOfE2  dOfE1)
-                      (of_app t2 t 
+                      (of_app t2 t  e1 e2'
                               dOfE2' dOfE1).
 
 preserv_beta :
