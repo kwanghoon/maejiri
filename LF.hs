@@ -70,7 +70,8 @@ termeqv m1 m2 =
   let whnfm1 = termwhnf m1
       whnfm2 = termwhnf m2
   in  case (whnfm1, whnfm2) of      
-        (Var i n, Var j m)     -> n == m && i == j || n /= m && (n-m)+j == i
+--        (Var i n, Var j m)     -> n == m && i == j || n /= m && (n-m)+j == i
+        (Var i n, Var j m)     -> i == j || i /= j && (n-m)+j == i
         (ConstM s, ConstM t)   -> s == t
         (Lam x a m, Lam y b n) -> typeeqv a b   && termeqv m n
         (App m1 m2, App m3 m4) -> termeqv m1 m3 && termeqv m2 m4
@@ -159,7 +160,25 @@ termcheck ctx (App m1 m2) =
                  then return $ Left (shifttype 0 (-1)
                                      (substtype 0
                                       (shiftterm 0 1 m2) b1))
-                 else return $ Right (NotMatched2 a1 a2 (App m1 m2)))
+                 else do { {- ttt1 <- termcheck ctx (ConstM "of_lam")
+                         ; putStrLn $ show $ ttt1
+                         ; putStrLn ""
+                         ; ttt <- termcheck ctx (App (App (App (ConstM "of_lam") (Var 4 7)) (Var 3 7)) (Var 6 7))
+                         ; putStrLn $ show $ ttt
+                         ; putStrLn ""
+                         ; putStrLn $ show $ m1
+                         ; putStrLn ""
+                         ; putStrLn $ show $ rm1
+                         ; putStrLn ""
+                         ; putStrLn $ show $ a1
+                         ; putStrLn ""
+                         ; putStrLn $ show $ m2
+                         ; putStrLn ""
+                         ; putStrLn $ show $ rm2
+                         ; putStrLn ""
+                         ; putStrLn $ show $ a2
+                         ; putStrLn "" 
+                         ; -} return $ Right (NotMatched2 a1 a2 (App m1 m2)) })
               rm2'    -> return $ rm2')
          Left t -> return $ Right (NotPiA t)
          rm1'   -> return $ rm1'
