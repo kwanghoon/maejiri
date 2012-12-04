@@ -12,7 +12,21 @@ import LF
 interactive =
   do text <- getContents
      putStrLn (show . parseprog.lexer $ text)
-
+     
+check []              = return()
+check (filename:args) =
+  do putStrLn (filename ++ ":")
+     h    <- openFile filename ReadMode
+     text <- hGetContents h
+     putStrLn "\tParsing..."
+     let sigs = parseprog (lexer text)
+     let ctx  = toCtx sigs
+     -- putStrLn (show sigs)
+     putStrLn "\tChecking..."
+     ctxcheck ctx
+     hClose h
+     check args
+     
 main = 
   do putStrLn "MaeJi LF Explorer (Ver. 0.1)"
      args <- getArgs
@@ -25,6 +39,9 @@ process [] =
 process ("-interactive":_) =
   do interactive
   
+process ("-check":args) =
+  do check args
+     
 process (filename:_) = 
   do h    <- openFile filename ReadMode
      text <- hGetContents h
