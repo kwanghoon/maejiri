@@ -4,9 +4,11 @@ module LF where
 import Data.Maybe
 import AST
 
-type Ctx = (ConstTypeEnv, ConstTermEnv, VarTermEnv)
+type Level = Int -- binder levels
 
-toCtx sigs = (typeDecls, termDecls, [])
+type Ctx = (ConstTypeEnv, ConstTermEnv, VarTermEnv, Level)
+
+toCtx sigs = (typeDecls, termDecls, [], 0)
   where
     typeDecls = [(s,toDBIdxK k) | HasKind (ConstA s) k <- sigs]
     termDecls = [(s,toDBIdxA t) | HasType (ConstM s) t <- sigs]
@@ -31,26 +33,39 @@ data Error = NotFound1   String ConstTypeEnv
            | AtError     String Error
            deriving Show
 
-addtype (cte1, cte2, vte) a = (cte1, cte2, a:vte)
+addtype :: Ctx -> A -> Ctx
+addtype (cte1, cte2, vte, level) a = (cte1, cte2, a:vte, level)
 
-fst3 (f,_,_) = f
-snd3 (_,s,_) = s
-thr3 (_,_,t) = t
+inclevel :: Ctx -> Ctx
+inclevel (cte1, cte2, vte, level) = (cte1', cte2', vte', level')
+  where
+    cte1'  = cte1
+    cte2'  = cte2
+    vte'   = [shifttype 0 1 a  | a <- vte]
+    level' = level+1
 
-sigmakindof s (tyctx, _, _) =
+
+fst4 (f,_,_,_) = f
+snd4 (_,s,_,_) = s
+thr4 (_,_,t,_) = t
+for4 (_,_,_,f) = f
+
+sigmakindof s (tyctx, _, _, _) =
   case [ k | (t,k) <- tyctx, s==t ] of
     [k] -> Just k
     _   -> Nothing
     
-sigmatypeof s (_, tmctx, _) =
+sigmatypeof s (_, tmctx, _, _) =
   case [ t | (m,t) <- tmctx, s==m ] of
     [t] -> Just t
     _   -> Nothing
     
-typeof i (_, _, vtenv) =
+typeof i (_, _, vtenv, _) =
   if length vtenv > i
   then Just $ head (drop i vtenv)
   else Nothing
+       
+level (_, _, _, l) = l       
 
 kindeqv Type Type               = True
 kindeqv (PiK x a k) (PiK y b l) = typeeqv a b && kindeqv k l
@@ -70,8 +85,10 @@ termeqv m1 m2 =
   let whnfm1 = termwhnf m1
       whnfm2 = termwhnf m2
   in  case (whnfm1, whnfm2) of      
---        (Var i n, Var j m)     -> n == m && i == j || n /= m && (n-m)+j == i
-        (Var i n, Var j m)     -> i == j || i /= j && (n-m)+j == i
+--  Without the level things (Seems to work, but not sure its correctness.)
+--        (Var i n, Var j m)     -> i == j || i /= j && (n-m)+j == i
+--  With the level things (Should work, but seems to inefficient to maintain levels
+        (Var i n, Var j m)     -> i == j && n == m
         (ConstM s, ConstM t)   -> s == t
         (Lam x a m, Lam y b n) -> typeeqv a b   && termeqv m n
         (App m1 m2, App m3 m4) -> termeqv m1 m3 && termeqv m2 m4
@@ -99,12 +116,13 @@ typewhnf (AppA a m)  =
     
 typecheck :: Ctx -> A -> IO (Either K Error)
 typecheck ctx (ConstA s) =
+  let n = for4 ctx in
   case sigmakindof s ctx of
-    Just k1 -> return (Left k1)
-    Nothing -> return (Right (NotFound1 s (fst3 ctx)))
+    Just k1 -> return (Left (shiftkind 0 n k1))
+    Nothing -> return (Right (NotFound1 s (fst4 ctx)))
 typecheck ctx (PiA x a b) =
   do { ra <- typecheck ctx a
-     ; rb <- typecheck (addtype ctx (shifttype 0 1 a)) b
+     ; rb <- typecheck (addtype (inclevel ctx) (shifttype 0 1 a)) b
      ; case (ra, rb) of
          (Left Type, Left Type) -> return (Left Type)
          (Left Type, Left t)    -> return (Right (NotType1 t b))
@@ -131,16 +149,17 @@ typecheck ctx (AppA a m) =
 
 termcheck :: Ctx -> M -> IO (Either A Error)
 termcheck ctx (ConstM s) =
+  let n = for4 ctx in
   case sigmatypeof s ctx of
-    Nothing -> return $ Right (NotFound2 s (snd3 ctx))
-    Just t  -> return $ Left t
+    Nothing -> return $ Right (NotFound2 s (snd4 ctx))
+    Just t  -> return $ Left (shifttype 0 n t)
 termcheck ctx (Var i n) =
   case typeof i ctx of 
-    Nothing -> return $ Right (NotFound3 i (thr3 ctx))
+    Nothing -> return $ Right (NotFound3 i (thr4 ctx))
     Just t  -> return $ Left t
 termcheck ctx (Lam x a m) = 
   do { ra <- typecheck ctx a
-     ; rm <- termcheck (addtype ctx (shifttype 0 1 a)) m
+     ; rm <- termcheck (addtype (inclevel ctx) (shifttype 0 1 a)) m
      ; case ra of
          Left Type ->
            (case rm of
@@ -160,32 +179,14 @@ termcheck ctx (App m1 m2) =
                  then return $ Left (shifttype 0 (-1)
                                      (substtype 0
                                       (shiftterm 0 1 m2) b1))
-                 else do { {- ttt1 <- termcheck ctx (ConstM "of_lam")
-                         ; putStrLn $ show $ ttt1
-                         ; putStrLn ""
-                         ; ttt <- termcheck ctx (App (App (App (ConstM "of_lam") (Var 4 7)) (Var 3 7)) (Var 6 7))
-                         ; putStrLn $ show $ ttt
-                         ; putStrLn ""
-                         ; putStrLn $ show $ m1
-                         ; putStrLn ""
-                         ; putStrLn $ show $ rm1
-                         ; putStrLn ""
-                         ; putStrLn $ show $ a1
-                         ; putStrLn ""
-                         ; putStrLn $ show $ m2
-                         ; putStrLn ""
-                         ; putStrLn $ show $ rm2
-                         ; putStrLn ""
-                         ; putStrLn $ show $ a2
-                         ; putStrLn "" 
-                         ; -} return $ Right (NotMatched2 a1 a2 (App m1 m2)) })
+                 else return $ Right (NotMatched2 a1 a2 (App m1 m2)))
               rm2'    -> return $ rm2')
          Left t -> return $ Right (NotPiA t)
          rm1'   -> return $ rm1'
      }
 
 ctxcheck :: Ctx -> IO ()
-ctxcheck ctx@(kenv, tenv, venv) =
+ctxcheck ctx@(kenv, tenv, venv, level) =
   takeWhile maxErr
      $ -- [loop (tyname, ???check ctx ki) | (tyname,ki) <- kenv]
        -- ++ 
