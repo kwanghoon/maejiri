@@ -38,22 +38,24 @@
  app     : /\s:holtype. /\t:holtype. obj (arrow s t) -> obj s -> obj t.
 
  all_i   : /\s:holtype./\F:obj(arrow s prop). 
-             (/\x:obj s. true (app F x)) -> true (app forall F).
+             (/\x:obj s. true (app s prop F x)) 
+              -> true (app (arrow s prop) prop (forall s) F).
  all_e   : /\s:holtype./\F:obj(arrow s prop)./\x:obj s. 
-             true (app forall F) -> true (app F x).
+             true (app (arrow s prop) prop (forall s) F) 
+              -> true (app s prop F x).
 
- eq      : /\phi:obj prop./\psi:obj prop. true phi 
-             -> true (ext_eq phi psi) -> true psi.
+ ;; eq      : /\phi:obj prop./\psi:obj prop. true phi 
+ ;;             -> true (ext_eq phi psi) -> true psi.
 
- ext_lam : /\phi:obj prop./\psi:obj prop. true phi 
-             -> true (ext_eq phi psi) ->  true psi.
+ ;; ext_lam : /\phi:obj prop./\psi:obj prop. true phi 
+ ;;             -> true (ext_eq phi psi) ->  true psi.
 
- beta    : /\s:holtype./\t:holtype./\f:obj s 
-             -> obj t./\x:obj s. 
-               true (ext_eq (app (lam (\x:obj s. f x)) x) f x).
+ ;; beta    : /\s:holtype./\t:holtype./\f:obj s 
+ ;;             -> obj t./\x:obj s. 
+ ;;               true (ext_eq (app (lam (\x:obj s. f x)) x) f x).
 
- eta     : /\s:holtype./\t:holtype./\f:obj (arrow s t).
-             true (ext_eq (lam (\x:obj s. app f x)) f).
+ ;; eta     : /\s:holtype./\t:holtype./\f:obj (arrow s t).
+ ;;             true (ext_eq (lam (\x:obj s. app f x)) f).
 
 @def
 
