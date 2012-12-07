@@ -1,4 +1,12 @@
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
+;; Vectors in LF
+;;
+;; Ref. Ch2 of Advanced Topics in TAPL
+;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 @type
 
 A      : Type.
@@ -24,4 +32,7 @@ two = succ (succ zero).
 ;;
 ;; \x:A.\y:A.\z:A. cons (succ (succ zero)) z (cons (succ zero) y (cons zero x nil))
 mkthree = \x:A.\y:A.\z:A. cons two z (cons one y (cons zero x nil)).
+
+;; _ = mkthree = a b.
+
 
