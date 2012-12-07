@@ -1,0 +1,27 @@
+
+@type
+
+A      : Type.
+Nat    : Type.
+Vector : /\n:Nat.Type.
+
+@term
+
+zero : Nat.
+succ : /\n:Nat.Nat.
+
+nil  : Vector zero.
+cons : /\n:Nat./\x:A./\v:Vector n. Vector (succ n).
+
+a:A.
+b:A.
+
+@def
+
+one = succ zero.
+two = succ (succ zero).
+
+;;
+;; \x:A.\y:A.\z:A. cons (succ (succ zero)) z (cons (succ zero) y (cons zero x nil))
+mkthree = \x:A.\y:A.\z:A. cons two z (cons one y (cons zero x nil)).
+

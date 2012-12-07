@@ -153,5 +153,5 @@ ctxcheck ctx@(kenv, tenv, venv, level) =
       do r <- io
          case r of
            Left _    -> takeWhile n ios
-           Right msg -> do putStrLn (show msg)
+           Right msg -> do printError msg -- putStrLn (show msg)
                            takeWhile (n-1) ios
