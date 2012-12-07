@@ -1,0 +1,7 @@
+This is a TODO list for MaeJi LF Explorer
+ - More LF examples
+ - Error reporting
+ - Basic libraries such as integer, boolean, bit, word, list, etc.
+ - Supporting modules by qualified names
+ - Supporting decision procedures
+
