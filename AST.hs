@@ -4,6 +4,7 @@ module AST where
 import Data.Maybe
 import Data.List
 
+-- Basics
 type X = String
 
 type Info = [String]
@@ -25,6 +26,58 @@ data Sig = HasKind A K
          | HasType M A
          | HasDef  M M
          deriving Show           
+                  
+-- Contexts                  
+type Ctx = (ConstTypeEnv, ConstTermEnv, VarTermEnv, Level)
+
+type ConstTypeEnv = [(String, K)]
+type ConstTermEnv = [(String, A)]
+type VarTermEnv   = [(X,A)]
+
+fst4 (f,_,_,_) = f
+snd4 (_,s,_,_) = s
+thr4 (_,_,t,_) = t
+for4 (_,_,_,f) = f
+
+boundVars :: Ctx -> [X]
+boundVars ctx = fst $ unzip $ thr4 $ ctx
+
+type Level = Int -- binder levels
+
+toCtx sigs = (typeDecls, termDecls, [], 0)
+  where
+    typeDecls = [(s,toDBIdxK k) | HasKind (ConstA s) k <- sigs]
+    termDecls = [(s,toDBIdxA t) | HasType (ConstM s) t <- sigs]
+
+
+addtype :: Ctx -> X -> A -> Ctx
+addtype (cte1, cte2, vte, level) x a = (cte1, cte2, (x,a):vte, level)
+
+inclevel :: Ctx -> Ctx
+inclevel (cte1, cte2, vte, level) = (cte1', cte2', vte', level')
+  where
+    cte1'  = cte1
+    cte2'  = cte2
+    vte'   = [(x,shifttype 0 1 a)  | (x,a) <- vte]
+    level' = level+1
+
+
+sigmakindof s (tyctx, _, _, _) =
+  case [ k | (t,k) <- tyctx, s==t ] of
+    [k] -> Just k
+    _   -> Nothing
+    
+sigmatypeof s (_, tmctx, _, _) =
+  case [ t | (m,t) <- tmctx, s==m ] of
+    [t] -> Just t
+    _   -> Nothing
+    
+typeof i (_, _, vtenv, _) =
+  if length vtenv > i
+  then Just $ snd $ head (drop i vtenv)
+  else Nothing
+       
+level (_, _, _, l) = l       
 
 --------------------------------------------------------------------------------
 -- Replace ConstA v with Var i j in the parsed tree using De Bruijn index

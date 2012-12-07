@@ -8,6 +8,7 @@ import System.Environment (getArgs)
 import Parser
 import AST
 import LF
+import Error
 
 interactive =
   do text <- getContents
@@ -68,7 +69,7 @@ doComm ctx (':':'t':' ':text) =
      tmchkResult res
   where
     tmchkResult (Left ty)   = prType [] ty
-    tmchkResult (Right err) = putStr (show err)
+    tmchkResult (Right err) = printError err -- putStr (show err)
     
 doComm ctx (':':'k':' ':text) = 
   do let ty = toDBIdxA $ parsetype $ lexer $ text
@@ -76,7 +77,7 @@ doComm ctx (':':'k':' ':text) =
      tychkResult res
   where
     tychkResult (Left ki)   = prKind [] ki
-    tychkResult (Right err) = putStr (show err)
+    tychkResult (Right err) = printError err -- putStr (show err)
     
 doComm ctx (':':'q':_) = exitSuccess
   
