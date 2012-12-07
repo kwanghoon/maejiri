@@ -78,4 +78,5 @@
 ;;
 ;;  - Proof
 ;;    \F:indi->prop.\j:true (forall (\x:indi.F x)). exists_i F zero (forall_e F zero j).
-;;    BUG!! \F:indi->prop.\j:true (forall F            ). exists_i F zero (forall_e F zero j) is not type-checked. 
+;;    \F:indi->prop.\j:true (forall F            ). exists_i F zero (forall_e F zero j) is also type-checked now. 
+

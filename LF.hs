@@ -5,21 +5,20 @@ import Data.Maybe
 import AST
 import Error
 
-kindeqv Type Type               = True
-kindeqv (PiK x a k) (PiK y b l) = typeeqv a b && kindeqv k l
-kindeqv _ _                     = False
+kindeqv Type Type level               = True
+kindeqv (PiK x a k) (PiK y b l) level = typeeqv a b level && kindeqv k l (level+1)
+kindeqv _ _ _                         = False
 
-typeeqv t1 t2 =
+typeeqv t1 t2 level =
   let whnft1 = typewhnf t1
       whnft2 = typewhnf t2
   in  case (whnft1, whnft2) of
         (ConstA s, ConstA t)   -> s == t
-        (PiA x a b, PiA y c d) -> typeeqv a c && typeeqv b d
-        (AppA a m, AppA b n)   -> typeeqv a b && termeqv m n
+        (PiA x a b, PiA y c d) -> typeeqv a c level && typeeqv b d (level+1)
+        (AppA a m, AppA b n)   -> typeeqv a b level && termeqv m n level
         (_, _)                 -> False
 
--- Var 8i 9n vs. Var 5j 6m
-termeqv m1 m2 =
+termeqv m1 m2 level =
   let whnfm1 = termwhnf m1
       whnfm2 = termwhnf m2
   in  case (whnfm1, whnfm2) of      
@@ -28,8 +27,15 @@ termeqv m1 m2 =
 --  With the level things (Should work, but seems to inefficient to maintain levels
         (Var i n, Var j m)     -> i == j && n == m
         (ConstM s, ConstM t)   -> s == t
-        (Lam x a m, Lam y b n) -> typeeqv a b   && termeqv m n
-        (App m1 m2, App m3 m4) -> termeqv m1 m3 && termeqv m2 m4
+        (Lam x a m, Lam y b n) -> typeeqv a b level && termeqv m n (level+1)
+        (App m1 m2, App m3 m4) -> termeqv m1 m3 level && termeqv m2 m4 level
+        (Lam x a m, _)         -> termeqv m
+                                     (App (shiftterm 0 1 whnfm2)
+                                          (Var 0 (1+level))) (level+1)
+        (_, Lam y b n)         -> termeqv 
+                                     (App (shiftterm 0 1 whnfm1)
+                                          (Var 0 (1+level))) 
+                                     n (level+1)
         (_, _)                 -> False
 
 termwhnf (Var i n)   = Var i n
@@ -77,7 +83,7 @@ typecheck ctx (AppA a m) =
      ; case ra of
          Left (PiK x b k) ->
            (case rm of
-              Left b1 -> (if typeeqv b b1
+              Left b1 -> (if typeeqv b b1 (level ctx)
                           then return $ Left (shiftkind 0 (-1)
                                      (substkind 0 (shiftterm 0 1 m) k))
                           else return $ Right (NotMatched1 b b1 (AppA a m) ctx))
@@ -114,7 +120,7 @@ termcheck ctx (App m1 m2) =
          Left (PiA x a1 b1) ->
            (case rm2 of
               Left a2 ->
-                (if typeeqv a1 a2
+                (if typeeqv a1 a2 (level ctx)
                  then return $ Left (shifttype 0 (-1)
                                      (substtype 0
                                       (shiftterm 0 1 m2) b1))
