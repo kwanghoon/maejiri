@@ -57,7 +57,7 @@
  ;; eta     : /\s:holtype./\t:holtype./\f:obj (arrow s t).
  ;;             true (ext_eq (lam (\x:obj s. app f x)) f).
 
-@def
+;; @def
 
-;ext_eq  : /\s:holtype.obj s -> obj s -> obj prop.
-  ext_eq  = \s:holtype.\x:obj s.\y:obj s.app (app equal x) y.
+;; ext_eq  : /\s:holtype.obj s -> obj s -> obj prop.
+;;  ext_eq  = \s:holtype.\x:obj s.\y:obj s.app (app (equal s) x) y.

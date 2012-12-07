@@ -24,7 +24,7 @@ check (filename:args) =
      let ctx  = toCtx sigs
      -- putStrLn (show sigs)
      putStrLn "\tChecking..."
-     ctxcheck ctx
+     _ <- ctxcheck ctx
      hClose h
      check args
      
@@ -51,8 +51,8 @@ process (filename:_) =
      let ctx  = toCtx sigs
      -- putStrLn (show sigs)
      putStrLn "Checking..."
-     ctxcheck ctx
-     shell ctx
+     ctx' <- ctxcheck ctx
+     shell ctx'
      hClose h
      
 shell ctx =     

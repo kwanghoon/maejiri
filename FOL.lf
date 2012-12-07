@@ -70,13 +70,15 @@
                 -> (/\x:indi. true (F x) -> true p)
                   -> true p.
 
-;;;;;;;;;;;;;;;;
-;; TEST:
-;;
+@def
+
 ;;  - Syntax
-;;    impl (forall (\x:indi.equal x x)) (exists (\x:indi.equal x x))
-;;
+ex1 = impl (forall (\x:indi.equal x x)) (exists (\x:indi.equal x x)).
+
 ;;  - Proof
-;;    \F:indi->prop.\j:true (forall (\x:indi.F x)). exists_i F zero (forall_e F zero j).
-;;    \F:indi->prop.\j:true (forall F            ). exists_i F zero (forall_e F zero j) is also type-checked now. 
+ex2 = \F:indi->prop.\j:true (forall (\x:indi.F x)). 
+            exists_i F zero (forall_e F zero j).
+
+ex3 = \F:indi->prop.\j:true (forall F). 
+             exists_i F zero (forall_e F zero j).
 
