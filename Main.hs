@@ -65,9 +65,17 @@ shell ctx =
 doComm ctx (':':'t':' ':text) = 
   do let term = toDBIdxM $ parseterm $ lexer $ text
      res <- termcheck ctx term
+     tmchkResult res
+  where
+    tmchkResult (Left ty)   = prType [] ty
+    tmchkResult (Right err) = putStr (show err)
+    
+doComm ctx (':':'k':' ':text) = 
+  do let ty = toDBIdxA $ parsetype $ lexer $ text
+     res <- typecheck ctx ty
      tychkResult res
   where
-    tychkResult (Left ty)   = prType [] ty
+    tychkResult (Left ki)   = prKind [] ki
     tychkResult (Right err) = putStr (show err)
     
 doComm ctx (':':'q':_) = exitSuccess

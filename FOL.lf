@@ -18,6 +18,7 @@
 
 @term
 
+ ;; Syntax
  zero     : indi.
  succ     : indi -> indi.
  plus     : indi -> indi -> indi.
@@ -32,20 +33,48 @@
  forall   : (indi -> prop) -> prop.
  exists   : (indi -> prop) -> prop.
 
- raa      : /\p:prop. true (not (not p)) -> true p.
+ ;; Axioms and Rules
+ eq_i     : /\x:indi. true (equal x x).
+ eq_e     : /\x:indi./\y:indi./\F:indi -> prop.
+              true (equal x y) -> true (F x) -> true (F y).
+
+ not_i    : /\p:prop./\q:prop. 
+              (true p -> true q) 
+                -> (true p -> true (not q))
+                     -> true (not p).
+ not_e    : /\p:prop. true (not (not p)) -> true p.           ;; raa
+
+ conj_i   : /\p:prop./\q:prop. true p -> true q -> true (conj p q).
+ conj_e1  : /\p:prop./\q:prop. true (conj p q) -> true p.
+ conj_e2  : /\p:prop./\q:prop. true (conj p q) -> true q.
+
+ disj_i1  : /\p:prop./\q:prop. true p -> true (disj p q).
+ disj_i1  : /\p:prop./\q:prop. true q -> true (disj p q).
+ disj_e   : /\p:prop./\q:prop./\r:prop. 
+              (true p -> true r)
+                 -> (true q -> true r)
+                       -> (true (disj p q) -> true r).
 
  impl_i   : /\p:prop./\q:prop. (true p -> true q) -> true (impl p q).
+ impl_e   : /\p:prop./\q:prop. true (impl p q) -> true p -> true q.
+ 
  forall_e : /\F:indi -> prop. /\x:indi.
               true (forall (\x:indi. F x)) -> true (F x).
  forall_i : /\F:indi -> prop. 
               (/\x:indi. true (F x)) -> true (forall (\x:indi. F x)).
 
+ exists_i : /\F:indi -> prop./\x:indi.
+                true (F x) -> true (exists F).
  exists_e : /\F:indi -> prop./\p:prop.
               true (exists (\x:indi. F x))
                 -> (/\x:indi. true (F x) -> true p)
                   -> true p.
 
+;;;;;;;;;;;;;;;;
+;; TEST:
 ;;
-; TEST
-;
-; impl (forall (\x:indi.equal x x)) (exists (\x:indi.equal x x))
+;;  - Syntax
+;;    impl (forall (\x:indi.equal x x)) (exists (\x:indi.equal x x))
+;;
+;;  - Proof
+;;    \F:indi->prop.\j:true (forall F). exists_i F zero (forall_e F zero j).
