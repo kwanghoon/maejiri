@@ -1,0 +1,90 @@
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
+;; The Hoare Logic in LF
+;;
+;; Ref. Arnon Avron, Furio A. Honsell, and Ian A. Mason,
+;;      Using Typed Lambda Calculus to Implement Formal Systems on a Machine,
+;;      ECS-LFCS-87-31, Dept. of CS, University of Edinburgh, July 1987.
+;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+@type
+
+Loc  : Type.
+Int  : Type.
+Prop : Type.
+Stmt : Type.
+Trip : Type.
+
+ahProp : Prop -> Type.
+ahTrip : Trip -> Type.
+
+neq : Loc -> Loc -> Type.
+
+shInt  : Loc -> Int -> Type.
+shProp : Loc -> Prop -> Type.
+
+QF : Prop -> Type.
+
+@term
+
+bang : Loc -> Int.
+
+zero : Int.
+one  : Int.
+plus : Int -> Int -> Int.
+eqInt  : Int -> Int -> Prop.
+
+not    : Prop -> Prop.
+and    : Prop -> Prop -> Prop.
+impl   : Prop -> Prop -> Prop.
+forall : (Int -> Prop) -> Prop.
+
+assign : Loc -> Int -> Stmt.
+seq    : Stmt -> Stmt -> Stmt.
+if     : /\e:Prop. QF e -> Stmt -> Stmt -> Stmt.
+while  : /\e:Prop. QF e -> Stmt -> Stmt.
+triple : Prop -> Stmt -> Prop -> Trip.
+
+
+sh0 : /\x:Loc. 
+        shInt x zero.
+sh1 : /\x:Loc./\y:Loc. 
+        neq x y -> shInt x (bang y).
+sh2 : /\x:Loc./\t1:Int./\t2:Int.
+        shInt x t1 -> shInt x t2 -> shInt x (plus t1 t2).
+sh3 : /\x:Loc./\t1:Int./\t2:Int.
+        shInt x t1 -> shInt x t2 -> shProp x (eqInt t1 t2).
+sh4 : /\x:Loc./\p:Prop. 
+        shProp x p -> shProp x (not p).
+sh5 : /\x:Loc./\p1:Prop./\p2:Prop. 
+        shProp x p1 -> shProp x p2 -> shProp x (impl p1 p2).
+sh6 : /\p:Int -> Prop./\x:Loc./\y:Loc.
+        (neq x y -> shProp x (p (bang y))) -> shProp x (forall p).
+
+QF0 : /\t1:Int. /\t2:Int. QF (eqInt t1 t2).
+QF1 : /\p:Prop. QF p -> QF (not p).
+QF2 : /\p1:Prop./\p2:Prop. QF p1 -> QF p2 -> QF (impl p1 p2).
+
+Ass : /\x:Loc./\t:Int./\p:Int -> Prop.
+        shProp x (forall p) 
+          -> ahTrip (triple (p t) (assign x t) (p (bang x))).
+Seq : /\p0:Prop./\p1:Prop./\p2:Prop./\s1:Stmt./\s2:Stmt.
+        ahTrip (triple p0 s1 p1) 
+          -> ahTrip (triple p1 s2 p2) 
+               -> ahTrip (triple p0 (seq s1 s2) p2).
+If  : /\p:Prop./\p1:Prop./\p2:Prop./\s1:Stmt./\s2:Stmt./\q:QF(p).
+        ahTrip (triple (and p1 p) s1 p2)
+          -> ahTrip (triple (and p1 (not p)) s2 p2)
+               -> ahTrip (triple p1 (if p q s1 s2) p2).
+While : /\p:Prop./\p1:Prop./\s:Stmt./\q:QF p.
+          ahTrip (triple (and p1 p) s p1)
+            -> ahTrip (triple p1 (while p q s) (not p1)).
+Con : /\p1:Prop./\p1':Prop./\p2:Prop./\p2':Prop./\s:Stmt.
+        ahProp (impl p1 p1')
+          -> ahProp (impl p2' p2)
+               -> ahTrip (triple p1' s p2')
+                    -> ahTrip (triple p1 s p2).
+
+
