@@ -1,0 +1,107 @@
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
+;; The Theory of Presburger Arithmetic
+;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+@type
+
+ indi     : Type.
+ prop     : Type.
+
+ true     : prop -> Type.
+
+@term
+
+;; Syntax
+ zero     : indi.
+ succ     : indi -> indi.
+ plus     : indi -> indi -> indi.
+ times    : indi -> indi -> indi.
+
+ equal    : indi -> indi -> prop.
+ lessthan : indi -> indi -> prop.
+ not      : prop -> prop.
+ conj     : prop -> prop -> prop.
+ disj     : prop -> prop -> prop.
+ impl     : prop -> prop -> prop.
+ forall   : (indi -> prop) -> prop.
+ exists   : (indi -> prop) -> prop.
+
+;; Axioms and Rules
+ eq_i     : /\x:indi. true (equal x x).
+ eq_e     : /\x:indi./\y:indi./\F:indi -> prop.
+              true (equal x y) -> true (F x) -> true (F y).
+
+ not_i    : /\p:prop./\q:prop. 
+              (true p -> true q) 
+                -> (true p -> true (not q))
+                     -> true (not p).
+ not_e    : /\p:prop. true (not (not p)) -> true p.           ;; raa
+
+ conj_i   : /\p:prop./\q:prop. true p -> true q -> true (conj p q).
+ conj_e1  : /\p:prop./\q:prop. true (conj p q) -> true p.
+ conj_e2  : /\p:prop./\q:prop. true (conj p q) -> true q.
+
+ disj_i1  : /\p:prop./\q:prop. true p -> true (disj p q).
+ disj_i1  : /\p:prop./\q:prop. true q -> true (disj p q).
+ disj_e   : /\p:prop./\q:prop./\r:prop. 
+              (true p -> true r)
+                 -> (true q -> true r)
+                       -> (true (disj p q) -> true r).
+
+ impl_i   : /\p:prop./\q:prop. (true p -> true q) -> true (impl p q).
+ impl_e   : /\p:prop./\q:prop. true (impl p q) -> true p -> true q.
+ 
+ forall_e : /\F:indi -> prop. /\x:indi.
+              true (forall (\x:indi. F x)) -> true (F x).
+ forall_i : /\F:indi -> prop. 
+              (/\x:indi. true (F x)) -> true (forall (\x:indi. F x)).
+
+ exists_i : /\F:indi -> prop./\x:indi.
+                true (F x) -> true (exists F).
+ exists_e : /\F:indi -> prop./\p:prop.
+              true (exists (\x:indi. F x))
+                -> (/\x:indi. true (F x) -> true p)
+                  -> true p.
+
+@def
+
+one = succ zero.
+
+;; The theory of Presburger Arithmetic
+
+;; (zero)
+;; forall x. not (x + 1 = 0)
+
+paZero = forall (\x:indi. not (equal (plus x one) zero)).
+
+;; (successor)
+;; forall x,y. x + 1 = y + 1 -> x = y
+
+paSucc = forall (\x:indi. 
+           forall (\y:indi. 
+             impl (equal (plus x one) (plus y one)) (equal x y))).
+
+;; (induction)
+;; F[0] /\ (forall x. F[x] -> F[x+1]) -> forall x.F[x]
+paInduct = \F:indi -> prop.
+             impl (conj (F zero)
+                        (forall (\x:indi. impl (F x) (F (succ x)))))
+                  (forall (\x:indi. F x)).
+
+;; (plus zero)
+;; forall x. x + 0 = x
+
+paPlusZero = forall (\x:indi. equal (plus x zero) x).
+
+;; (plus successor)
+;; forall x,y. x + (y + 1) = (x + y) + 1
+
+paPlusSucc = forall (\x:indi.
+               forall (\y:indi. 
+                 equal
+                   (plus x (plus y one))
+                   (plus (plus x y) one))).
+
