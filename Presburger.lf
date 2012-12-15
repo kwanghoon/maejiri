@@ -109,16 +109,16 @@ paPlusZero : /\x:indi. true (equal (plus x zero) x).
 ;; forall x,y. x + (y + 1) = (x + y) + 1
 
 paPlusSucc : /\x:indi./\y:indi.
-               true(equal (plus x (plus y one))
-                          (plus (plus x y) one)).
+               true (equal (plus x (plus y one))
+                           (plus (plus x y) one)).
 
 
 @def
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; To prove "2 + 1 = 3", find a term of the following type:
+;; 2 + 1 = 3
 ;;
-;;   true (equal (plus (plus 1 1) 1) (plus 1 (plus 1 1)))
+;; =>  true (equal (plus (plus 1 1) 1) (plus 1 (plus 1 1)))
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 to_prove_two_plus_one_is_three 
@@ -129,4 +129,144 @@ to_prove_two_plus_one_is_three
 ;;    Note: To represent the natural numbers zero, one, two, three, ...
 ;;              (1) zero, plus zero one, plus zero (plus zero one), ...
 ;;              (2) zero, succ zero, succ (succ zero), ...
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Commutativity: x + y = y + x
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Associativity: (x + y) + z = x + (y + z)
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;; [1] (x+y)+0 = x+y     by (plus zero)
+Tb1 = \x:indi.\y:indi. paPlusZero (plus x y).             
+
+;; [2] y+0 = y           by (plus zero)
+Tb2 = \y:indi. paPlusZero y.                               
+
+;; [3] y = y+0           by (symm.) & [2]
+Tb3 = \y:indi. symm (plus y zero) y (Tb2 y).               
+
+;; [4] x = x             by (refl) 
+Tb4 = \x:indi. eq_i x.                                     
+
+;; [5] x+y = x+(y+0)     by (fun. cong.) & [4], [3]
+Tb5 = \x:indi.\y:indi. fncg x x y (plus y zero) (Tb4 x) (Tb3 y).
+
+;; [6] (x+y)+0 = x+(y+0) by (tran.) & [1], [5]
+Tb6 = \x:indi.\y:indi.                                     
+       tran (plus (plus x y) zero) (plus x y) (plus x (plus y zero))
+         (Tb1 x y) (Tb5 x y).
+
+M_base = Tb6.
+
+
+;; [1] (x+y)+n = x+(y+n)                 by (assump.)
+;; Ti1 = \x:indi.\y:indi.\n:indi. F x y n.
+
+;; [2] (x+y)+(n+1) = ((x+y)+n)+1         by (plus succ)
+Ti2 = \x:indi.\y:indi.\n:indi.
+        paPlusSucc (plus x y) n.
+
+;; [3] ((x+y)+n)+1 = (x+(y+n))+1         by (func. cong.) & [1]
+Ti3 = \x:indi.\y:indi.\n:indi.
+       \J:true (equal (plus (plus x y) n) (plus x (plus y n))).
+        fncg (plus (plus x y) n) (plus x (plus y n)) one one
+          J (eq_i one).
+
+;; [4] x+((y+n)+1) = (x+(y+n))+1         by (plus succ)
+Ti4 = \x:indi.\y:indi.\n:indi.
+        paPlusSucc x (plus y n).
+
+;; [5] (x+(y+n))+1 = x+((y+n)+1)         by (symm.) & [4]
+Ti5 = \x:indi.\y:indi.\n:indi.
+        symm (plus x (plus (plus y n) one))
+             (plus (plus x (plus y n)) one)
+             (Ti4 x y n).
+
+;; [6] y+(n+1) = (y+n)+1                 by (plus succ)
+Ti6 = \y:indi.\n:indi.
+        paPlusSucc y n.
+
+;; [7] (y+n)+1 = y+(n+1)                 by (symm.) & [6]
+Ti7 = \y:indi.\n:indi.
+        symm (plus y (plus n one))
+             (plus (plus y n) one)
+             (Ti6 y n).
+
+;; [8] x+(y+n)+1 = x+(y+(n+1))           by (func. cong.) & [7]
+Ti8 = \x:indi.\y:indi.\n:indi.
+        fncg x x (plus (plus y n) one) (plus y (plus n one))
+          (eq_i x) (Ti7 y n).
+
+;; [9] (x+y)+(n+1) = (x+(y+n))+1         by (tran.) [2],[3]
+Ti9 = \x:indi.\y:indi.\n:indi.
+       \J:true (equal (plus (plus x y) n) (plus x (plus y n))).
+        tran (plus (plus x y) (plus n one))
+             (plus (plus (plus x y) n) one)
+             (plus (plus x (plus y n)) one)
+          (Ti2 x y n)
+          (Ti3 x y n J).
+
+;; [10] (x+y)+(n+1) = x+((y+n)+1)         by (tran.) [9],[5]
+Ti10 = \x:indi.\y:indi.\n:indi.
+       \J:true (equal (plus (plus x y) n) (plus x (plus y n))).
+        tran (plus (plus x y) (plus n one))
+             (plus (plus x (plus y n)) one)
+             (plus x (plus (plus y n) one))
+          (Ti9 x y n J)
+          (Ti5 x y n).
+
+;; [11] (x+y)+(n+1) = x+(y+(n+1))         by (tran.) [10],[8]
+Ti11 = \x:indi.\y:indi.\n:indi.
+       \J:true (equal (plus (plus x y) n) (plus x (plus y n))).
+        tran (plus (plus x y) (plus n one))
+             (plus x (plus (plus y n) one))
+             (plus x (plus y (plus n one)))
+          (Ti10 x y n J)
+          (Ti8 x y n).
+
+M_induct =
+  \x:indi.\y:indi.
+    (forall_i
+      (\n:indi.
+        impl
+          (equal (plus (plus x y) n) (plus x (plus y n)))
+          (equal (plus (plus x y) (plus n one)) (plus x (plus y (plus n one)))))
+      (\n:indi.
+        impl_i
+          (equal (plus (plus x y) n) (plus x (plus y n)))
+          (equal (plus (plus x y) (plus n one)) (plus x (plus y (plus n one))))
+          (\J:true (equal (plus (plus x y) n) (plus x (plus y n))).
+                       Ti11 x y n J)  )).
+
+to_prove_associativity
+ = \x:indi.\y:indi.
+     paInduct (\z:indi. equal (plus (plus x y) z) (plus x (plus y z)))
+       (conj_i
+          (equal (plus (plus x y) zero) (plus x (plus y zero)))
+          (forall (\z:indi.
+                    (impl
+                      (equal (plus (plus x y) z) (plus x (plus y z)))
+                      (equal (plus (plus x y) (plus z one))
+                             (plus x (plus y (plus z one)))))  ))
+          (M_base x y)      ;; M_base   : F x y zero
+          (M_induct x y)).  ;; M_induct : forall N. F x y N -> F x y (N+1)
+
+;;
+;; The type of to_prove_associativity
+;;
+;; : /\x:indi./\y:indi.
+;;     true 
+;;       (forall
+;;         (\z:indi.
+;;           equal
+;;             (plus (plus x y) z)
+;;             (plus x (plus y z)) ))
+
+;; cf.
+;; : /\x:indi./\y:indi./\z:indi.
+;;     true (equal (plus (plus x y) z) (plus x (plus y z)))
 
