@@ -7,101 +7,126 @@
 
 @type
 
- indi     : Type.
- prop     : Type.
+indi     : Type.
+prop     : Type.
 
- true     : prop -> Type.
+true     : prop -> Type.
 
 @term
 
 ;; Syntax
- zero     : indi.
- succ     : indi -> indi.
- plus     : indi -> indi -> indi.
- times    : indi -> indi -> indi.
+zero     : indi.
+one      : indi.
+plus     : indi -> indi -> indi.
 
- equal    : indi -> indi -> prop.
- lessthan : indi -> indi -> prop.
- not      : prop -> prop.
- conj     : prop -> prop -> prop.
- disj     : prop -> prop -> prop.
- impl     : prop -> prop -> prop.
- forall   : (indi -> prop) -> prop.
- exists   : (indi -> prop) -> prop.
+equal    : indi -> indi -> prop.
+lessthan : indi -> indi -> prop.
+not      : prop -> prop.
+conj     : prop -> prop -> prop.
+disj     : prop -> prop -> prop.
+impl     : prop -> prop -> prop.
+forall   : (indi -> prop) -> prop.
+exists   : (indi -> prop) -> prop.
 
 ;; Axioms and Rules
- eq_i     : /\x:indi. true (equal x x).
- eq_e     : /\x:indi./\y:indi./\F:indi -> prop.
-              true (equal x y) -> true (F x) -> true (F y).
+eq_i     : /\x:indi. true (equal x x).
+eq_e     : /\x:indi./\y:indi./\F:indi -> prop.
+             true (equal x y) -> true (F x) -> true (F y).
 
- not_i    : /\p:prop./\q:prop. 
-              (true p -> true q) 
-                -> (true p -> true (not q))
-                     -> true (not p).
- not_e    : /\p:prop. true (not (not p)) -> true p.           ;; raa
+not_i    : /\p:prop./\q:prop. 
+             (true p -> true q) 
+               -> (true p -> true (not q))
+                    -> true (not p).
+not_e    : /\p:prop. true (not (not p)) -> true p.           ;; raa
 
- conj_i   : /\p:prop./\q:prop. true p -> true q -> true (conj p q).
- conj_e1  : /\p:prop./\q:prop. true (conj p q) -> true p.
- conj_e2  : /\p:prop./\q:prop. true (conj p q) -> true q.
+conj_i   : /\p:prop./\q:prop. true p -> true q -> true (conj p q).
+conj_e1  : /\p:prop./\q:prop. true (conj p q) -> true p.
+conj_e2  : /\p:prop./\q:prop. true (conj p q) -> true q.
 
- disj_i1  : /\p:prop./\q:prop. true p -> true (disj p q).
- disj_i1  : /\p:prop./\q:prop. true q -> true (disj p q).
- disj_e   : /\p:prop./\q:prop./\r:prop. 
-              (true p -> true r)
-                 -> (true q -> true r)
-                       -> (true (disj p q) -> true r).
+disj_i1  : /\p:prop./\q:prop. true p -> true (disj p q).
+disj_i1  : /\p:prop./\q:prop. true q -> true (disj p q).
+disj_e   : /\p:prop./\q:prop./\r:prop. 
+             (true p -> true r)
+                -> (true q -> true r)
+                      -> (true (disj p q) -> true r).
 
- impl_i   : /\p:prop./\q:prop. (true p -> true q) -> true (impl p q).
- impl_e   : /\p:prop./\q:prop. true (impl p q) -> true p -> true q.
+impl_i   : /\p:prop./\q:prop. (true p -> true q) -> true (impl p q).
+impl_e   : /\p:prop./\q:prop. true (impl p q) -> true p -> true q.
  
- forall_e : /\F:indi -> prop. /\x:indi.
-              true (forall (\x:indi. F x)) -> true (F x).
- forall_i : /\F:indi -> prop. 
-              (/\x:indi. true (F x)) -> true (forall (\x:indi. F x)).
+forall_e : /\F:indi -> prop. /\x:indi.
+             true (forall (\x:indi. F x)) -> true (F x).
+forall_i : /\F:indi -> prop. 
+             (/\x:indi. true (F x)) -> true (forall (\x:indi. F x)).
 
- exists_i : /\F:indi -> prop./\x:indi.
-                true (F x) -> true (exists F).
- exists_e : /\F:indi -> prop./\p:prop.
-              true (exists (\x:indi. F x))
-                -> (/\x:indi. true (F x) -> true p)
-                  -> true p.
-
-@def
-
-one = succ zero.
+exists_i : /\F:indi -> prop./\x:indi.
+               true (F x) -> true (exists F).
+exists_e : /\F:indi -> prop./\p:prop.
+             true (exists (\x:indi. F x))
+               -> (/\x:indi. true (F x) -> true p)
+                 -> true p.
 
 ;; The theory of Presburger Arithmetic
 
+;; (reflexivity)
+;; eq_i
+
+;; (symmetricity)
+symm : /\x:indi./\y:indi.
+         true (equal x y) -> true (equal y x).
+
+;; (transitivity)
+tran : /\x:indi./\y:indi./\z:indi.
+         true (equal x y) -> true (equal y z) -> true (equal x z).
+
+;; (function congruence)
+fncg : /\x1:indi./\x2:indi./\y1:indi./\y2:indi.
+         true (equal x1 x2) ->
+           true (equal y1 y2) ->
+             true (equal (plus x1 y1) (plus x2 y2)).
+
 ;; (zero)
 ;; forall x. not (x + 1 = 0)
-
-paZero = forall (\x:indi. not (equal (plus x one) zero)).
+paZero : /\x:indi. true (not (equal (plus x one) zero)).
 
 ;; (successor)
 ;; forall x,y. x + 1 = y + 1 -> x = y
-
-paSucc = forall (\x:indi. 
-           forall (\y:indi. 
-             impl (equal (plus x one) (plus y one)) (equal x y))).
+paSucc : /\x:indi./\y:indi.
+           true (impl (equal (plus x one) (plus y one)) (equal x y)).
 
 ;; (induction)
 ;; F[0] /\ (forall x. F[x] -> F[x+1]) -> forall x.F[x]
-paInduct = \F:indi -> prop.
-             impl (conj (F zero)
-                        (forall (\x:indi. impl (F x) (F (succ x)))))
-                  (forall (\x:indi. F x)).
+paInduct : /\F:indi -> prop.
+             true (conj (F zero)
+                        (forall (\x:indi. impl (F x) (F (plus x one)))))
+               -> true (forall (\x:indi. F x)).
 
 ;; (plus zero)
 ;; forall x. x + 0 = x
 
-paPlusZero = forall (\x:indi. equal (plus x zero) x).
+paPlusZero : /\x:indi. true (equal (plus x zero) x).
 
 ;; (plus successor)
 ;; forall x,y. x + (y + 1) = (x + y) + 1
 
-paPlusSucc = forall (\x:indi.
-               forall (\y:indi. 
-                 equal
-                   (plus x (plus y one))
-                   (plus (plus x y) one))).
+paPlusSucc : /\x:indi./\y:indi.
+               true(equal (plus x (plus y one))
+                          (plus (plus x y) one)).
+
+
+@def
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; To prove "2 + 1 = 3", find a term of the following type:
+;;
+;;   true (equal (plus (plus 1 1) 1) (plus 1 (plus 1 1)))
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+to_prove_two_plus_one_is_three 
+ = symm 
+     (plus one (plus one one)) (plus (plus one one) one)
+     (paPlusSucc one one).
+
+;;    Note: To represent the natural numbers zero, one, two, three, ...
+;;              (1) zero, plus zero one, plus zero (plus zero one), ...
+;;              (2) zero, succ zero, succ (succ zero), ...
 
