@@ -126,12 +126,36 @@ to_prove_two_plus_one_is_three
      (plus one (plus one one)) (plus (plus one one) one)
      (paPlusSucc one one).
 
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;    Note: To represent the natural numbers zero, one, two, three, ...
 ;;              (1) zero, plus zero one, plus zero (plus zero one), ...
 ;;              (2) zero, succ zero, succ (succ zero), ...
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Commutativity: x + y = y + x
+;; [TODO]
+;; Predecessor  : Pred(x)=y iff (x=0 /\ y=0) \/ (S y=x)
+;; Subtraction  : x-y = z iff (x<y /\ z=0) \/ y+z=x
+;; less than    : x<y = exists z. S (x+z) = y
+;; less than or equal to : x <= y = exists z. x + z = y.
+
+;; x/y = exists t. t<y /\ x=z*y+t
+;; x|y = exists z. x*z = y
+;; x is prime iff forall z. z|x => z=1 \/ z=x) <=> t=1
+
+;; Commutativity and associativity over +, *
+;; Distributity over 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; [TODO] Successor != Zero : not (S x = 0)
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; [TODO] Commutativity: x + y = y + x
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
