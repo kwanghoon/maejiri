@@ -158,6 +158,231 @@ to_prove_two_plus_one_is_three
 ;; [TODO] Commutativity: x + y = y + x
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+;;
+;; I. 0+y = y+0
+;;
+
+;; [1] 0+0 = 0
+Tc_b1 = paPlusZero zero.
+
+;; [2] 0 = 0+0
+Tc_b2 = symm (plus zero zero) zero Tc_b1.
+
+;; [3] 0+0 = 0+0      Why not just eq_i (plus zero zero)?
+Tc_b3 = tran (plus zero zero) zero (plus zero zero) Tc_b1 Tc_b2.
+
+;; [4] 0+x = x+0    fresh x
+; Tc_b4 = paZeroX.
+
+;; [5] x+0 = x
+Tc_b5 = paPlusZero.
+
+;; [6] 0+x = x
+Tc_b6 = \x:indi.
+        \JTc_b4: true (equal (plus zero x) (plus x zero)).
+          tran (plus zero x) (plus x zero) x JTc_b4 (Tc_b5 x).
+
+;; [7] 0+(x+1) = (0+x)+1
+Tc_b7 = \x:indi. paPlusSucc zero x.
+
+;; [8] (0+x)+1 = x+1
+Tc_b8 = \x:indi.
+        \JTc_b4: true (equal (plus zero x) (plus x zero)).
+          fncg (plus zero x) x one one (Tc_b6 x JTc_b4) (eq_i one).
+
+;; [9] (x+1)+0 = x+1
+Tc_b9 = \x:indi. paPlusZero (plus x one).
+
+;; [10] x+1 = (x+1)+0
+Tc_b10 = \x:indi. symm (plus (plus x one) zero) (plus x one) (Tc_b9 x).
+
+;; [11] 0+(x+1) = (x+1)+0
+Tc_b11 = \x:indi.
+         \JTc_b4:true (equal (plus zero x) (plus x zero)).
+           tran 
+             (plus zero (plus x one)) (plus x one) (plus (plus x one) zero)
+             (tran
+                (plus zero (plus x one)) (plus (plus zero x) one) (plus x one)
+                (Tc_b7 x) (Tc_b8 x JTc_b4))
+             (Tc_b10 x).
+
+;; 0 + y = y + 0
+Tc_b = \y:indi.
+         paInduct
+           (\z:indi.
+               equal (plus zero z) (plus z zero))
+           (conj_i
+               (equal (plus zero zero) (plus zero zero))
+               (forall (\z:indi.
+                         impl (equal (plus zero z) (plus z zero))
+                              (equal (plus zero (plus z one)) 
+                                     (plus (plus z one) zero)) ))
+               Tc_b3
+               (forall_i
+                 (\z:indi.
+                   impl
+                     (equal (plus zero z) (plus z zero))
+                     (equal (plus zero (plus z one)) (plus (plus z one) zero)))
+                 (\z:indi.
+                   (impl_i
+                     (equal (plus zero z) (plus z zero))
+                     (equal (plus zero (plus z one)) (plus (plus z one) zero))
+                     (\J: true (equal (plus zero z) (plus z zero)).
+                       Tc_b11 z J))) )).
+
+;;
+;; II. x+y=y+x => (x+1)+y=y+(x+1)
+;;
+
+;; [1] x+y = y+x
+; Tc_i1 = paXY.
+
+;; [2] y+(x+1) = (y+x)+1
+Tc_i2 = \x:indi.\y:indi. paPlusSucc y x.
+
+;; [3] (x+y)+1 = (y+x)+1
+Tc_i3 = \x:indi.\y:indi.
+        \JTc_i1 : true (equal (plus x y) (plus y x)).
+          fncg (plus x y) (plus y x) one one JTc_i1 (eq_i one).
+
+;; [4] (y+x)+1 = (x+y)+1
+Tc_i4 = \x:indi.\y:indi.
+        \JTc_i1 : true (equal (plus x y) (plus y x)).
+          symm (plus (plus x y) one) (plus (plus y x) one) (Tc_i3 x y JTc_i1).
+
+;; [5] y+(x+1) = (x+y)+1
+Tc_i5 = \x:indi.\y:indi. 
+        \JTc_i1 : true (equal (plus x y) (plus y x)).
+          tran (plus y (plus x one)) (plus (plus y x) one) (plus (plus x y) one)
+            (Tc_i2 x y) (Tc_i4 x y JTc_i1).
+
+;;
+;; II-1. x+y=y+x => (x+1)+y=(x+y)+1
+;;
+
+;; y=0
+;; [1] (x+1)+0 = x+1
+Tc_iz1 = \x:indi. paPlusZero (plus x one).
+
+;; [2] (x+0)+1 = x+1
+Tc_iz2 = \x:indi. 
+            fncg (plus x zero) x one one
+              (paPlusZero x) (eq_i one).
+
+;; [3] x+1 = (x+0)+1
+Tc_iz3 = \x:indi. symm (plus (plus x zero) one) (plus x one) (Tc_iz2 x).
+
+;; [4] (x+1)+0 = (x+0)+1
+Tc_iz4 = \x:indi.
+           tran (plus (plus x one) zero) (plus x one) (plus (plus x zero) one)	
+             (Tc_iz1 x) (Tc_iz3 x).
+
+;; S(y)
+;; [1] x+y = y+x
+Tc_is1 = \JTc_i1 : /\x:indi./\y:indi. true (equal (plus x y) (plus y x)).
+         \x:indi.\y:indi. JTc_i1 x y.
+
+;; [2] (x+1)+y = (x+y)+1
+Tc_is2 = \x:indi.\y:indi. 
+         \J : true (equal (plus (plus x one) y) (plus (plus x y) one)). J.
+
+;; [3] (x+1)+(y+1) = ((x+1)+y)+1
+Tc_is3 = \x:indi.\y:indi. paPlusSucc (plus x one) y.
+
+;; [4] ((x+1)+y)+1 = ((x+y)+1)+1
+Tc_is4 = \x:indi.\y:indi. 
+         \J : true (equal (plus (plus x one) y) (plus (plus x y) one)).
+           fncg (plus (plus x one) y) (plus (plus x y) one) one one
+             (Tc_is2 x y J) (eq_i one).
+
+;; [5] (x+1)+(y+1) = ((x+y)+1)+1
+Tc_is5 = \x:indi.\y:indi. 
+         \J : true (equal (plus (plus x one) y) (plus (plus x y) one)).
+           tran (plus (plus x one) (plus y one)) (plus (plus (plus x one) y) one) (plus (plus (plus x y) one) one)
+             (Tc_is3 x y) (Tc_is4 x y J).
+
+;; [6] x+(y+1) = (x+y)+1
+Tc_is6 = paPlusSucc.
+
+;; [7] (x+y)+1 = x+(y+1)
+Tc_is7 = \x:indi.\y:indi. symm (plus x (plus y one)) (plus (plus x y) one)
+           (Tc_is6 x y).
+
+;; [8] ((x+y)+1)+1 = (x+(y+1))+1
+Tc_is8 = \x:indi.\y:indi. 
+           fncg (plus (plus x y) one) (plus x (plus y one)) one one
+             (Tc_is7 x y) (eq_i one).
+
+;; [9] (x+1)+(y+1) = (x+(y+1))+1
+Tc_is9 = \x:indi.\y:indi.
+         \J : true (equal (plus (plus x one) y) (plus (plus x y) one)).
+           tran (plus (plus x one) (plus y one)) (plus (plus (plus x y) one) one) (plus (plus x (plus y one)) one)
+             (Tc_is5 x y J) (Tc_is8 x y).
+
+;; (x+1)+y = (x+y)+1
+Tc_izs = \x:indi.\y:indi.
+           paInduct
+             (\z:indi. 
+                 equal (plus (plus x one) z) (plus (plus x z) one))
+             (conj_i
+               (equal (plus (plus x one) zero) (plus (plus x zero) one))
+               (forall (\z:indi.
+                         impl (equal (plus (plus x one) z) 
+                                     (plus (plus x z) one))
+                              (equal (plus (plus x one) (plus z one)) 
+                                     (plus (plus x (plus z one)) one))))
+               (Tc_iz4 x)
+               (forall_i
+                 (\z:indi.
+                   impl
+                     (equal (plus (plus x one) z) 
+                            (plus (plus x z) one))
+                     (equal (plus (plus x one) (plus z one)) 
+                            (plus (plus x (plus z one)) one)))
+                 (\z:indi.
+                   (impl_i 
+                     (equal (plus (plus x one) z) 
+                            (plus (plus x z) one))
+                     (equal (plus (plus x one) (plus z one)) 
+                            (plus (plus x (plus z one)) one))
+                     (\J:true (equal (plus (plus x one) z) 
+                                     (plus (plus x z) one)). Tc_is9 x z J))))).
+
+
+Tc_i = \x:indi.\y:indi.
+       \J1: true (equal (plus x y) (plus y x)).
+         tran (plus (plus x one) y)
+              (plus (plus x y) one)
+              (plus y (plus x one))
+              (forall_e (\z:indi. equal (plus (plus x one) z) 
+                                        (plus (plus x z) one)) y (Tc_izs x y))
+              (symm (plus y (plus x one))
+                    (plus (plus x y) one)
+                    (Tc_i5 x y J1)).
+
+
+to_prove_commutative
+ = \y:indi.
+     paInduct
+       (\z:indi.
+           equal (plus z y) (plus y z))
+       (conj_i
+           (equal (plus zero y) (plus y zero))
+           (forall (\z:indi.
+                     impl (equal (plus z y) (plus y z))
+                          (equal (plus (plus z one) y) (plus y (plus z one)))))
+           (forall_e (\w:indi. equal (plus zero w) (plus w zero)) y (Tc_b y))
+           (forall_i
+             (\z:indi.
+               impl
+                 (equal (plus z y) (plus y z))
+                 (equal (plus (plus z one) y) (plus y (plus z one))))
+             (\z:indi.
+               impl_i
+                 (equal (plus z y) (plus y z))
+                 (equal (plus (plus z one) y) (plus y (plus z one)))
+                 (\J: true (equal (plus z y) (plus y z)).
+                   Tc_i z y J) ))).
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
