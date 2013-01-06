@@ -19,8 +19,11 @@ zero     : indi.
 one      : indi.
 plus     : indi -> indi -> indi.
 
+minus    : indi -> indi -> indi.  ;; Extension
+lt       : indi -> indi -> prop.  ;; Extension
+lte      : indi -> indi -> prop.  ;; Extension
+
 equal    : indi -> indi -> prop.
-lessthan : indi -> indi -> prop.
 not      : prop -> prop.
 conj     : prop -> prop -> prop.
 disj     : prop -> prop -> prop.
@@ -112,6 +115,40 @@ paPlusSucc : /\x:indi./\y:indi.
                true (equal (plus x (plus y one))
                            (plus (plus x y) one)).
 
+;; [Extension of PA]
+;; (less than) : x<y = exists z. S (x+z) = y
+;;
+lessthan :
+  /\x:indi./\y:indi.
+    true (conj
+             (impl (exists (\z:indi. equal (plus (plus x z) one) y))
+                   (lt x y))
+             (impl (lt x y)
+                   (exists (\z:indi. equal (plus (plus x z) one) y)))).
+
+;; [Extension of PA]
+;; (less than or equal to) : x<=y = exists z. x+z = y
+;;
+lessthanorequalto :
+  /\x:indi./\y:indi.
+    true (conj
+             (impl (lte x y)
+                   (exists (\z:indi. equal (plus x z) y)))
+             (impl (exists (\z:indi. equal (plus x z) y))
+                   (lte x y))).
+
+;; [Extension of PA]
+;; (minus) : x-y=z iff (x<y /\ z=0) \/ y+z=x
+;;
+subtraction :
+  /\x:indi./\y:indi./\z:indi.
+    true (conj 
+             (impl (disj (conj (lt x y) (equal z zero)) (equal (plus y z) x))
+                   (equal (minus x y) z))
+             (impl (equal (minus x y) z) 
+                   (disj (conj (lt x y) (equal z zero)) (equal (plus y z) x)))).
+
+
 
 @def
 
@@ -135,12 +172,12 @@ to_prove_two_plus_one_is_three
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; [TODO]
 ;; Predecessor  : Pred(x)=y iff (x=0 /\ y=0) \/ (S y=x)
 ;; Subtraction  : x-y = z iff (x<y /\ z=0) \/ y+z=x
 ;; less than    : x<y = exists z. S (x+z) = y
 ;; less than or equal to : x <= y = exists z. x + z = y.
 
+;; [TODO]
 ;; x/y = exists t. t<y /\ x=z*y+t
 ;; x|y = exists z. x*z = y
 ;; x is prime iff forall z. z|x => z=1 \/ z=x) <=> t=1
@@ -150,12 +187,15 @@ to_prove_two_plus_one_is_three
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; [TODO] Successor != Zero : not (S x = 0)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; [TODO] Commutativity: x + y = y + x
+;; Commutativity: x + y = y + x
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;;
