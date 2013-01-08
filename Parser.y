@@ -36,12 +36,28 @@ import AST
 
 dummy_var_name = "$d"
 
+type LineNumber = Int
+data ParseResult a = Ok a | Failed String
+type P a           = LineNumber -> ParseResult a
+
+thenP :: P a -> (a -> P b) -> P b
+thenP m k = \lineno ->
+ case m lineno of
+    Ok a -> k a lineno
+    Failed s -> Failed s
+
+returnP :: a -> P a
+returnP a = \lineno -> Ok a
+
+
 }
 
 %name parseprog
 %partial parsekind K
 %partial parsetype A
 %partial parseterm M
+
+%monad { P } { thenP } { returnP }
 
 
 %tokentype { Token }
@@ -114,7 +130,7 @@ DefDecls: var '=' M '.'			{ [HasDef  (ConstM $1) $3] }
 
 {
 
-parseError :: [Token] -> a
+parseError :: [Token] -> P a
 parseError toks = error ("Parse error at " ++
 			 (concat 
 			  $ intersperse " " 
