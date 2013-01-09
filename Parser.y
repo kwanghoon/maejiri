@@ -52,6 +52,7 @@ dummy_var_name = "$d"
 	Pi	{ TokenPi  }
 	Lam	{ TokenLam  }
 	var	{ TokenVar $$ }
+	num	{ TokenNum $$ }
 	':'	{ TokenColon }
 	'.'	{ TokenDot }
 	'('	{ TokenOB }
@@ -141,6 +142,7 @@ data Token = TokenType
      	   | TokenPi
 	   | TokenLam
 	   | TokenVar String
+	   | TokenNum Integer  -- Int or Integer?
 	   | TokenColon
 	   | TokenDot
 	   | TokenOB
@@ -168,8 +170,8 @@ lexer (c:cs) | isSpace c = lexer cs
 --	     | isDigit c = lexNum (c:cs)
 lexer (c:cs) = error [c]
 
--- lexNum cs = TokenInt (read num) : lexer rest
---         where (num,rest) = span isDigit cs
+lexNum cs = TokenNum (read num) : lexer rest
+  where (num,rest) = span isDigit cs
 
 lexVar cs = case span isVarChar cs of
        	       ("Type", rest) -> TokenType : lexer rest
