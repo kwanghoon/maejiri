@@ -34,18 +34,31 @@ import AST
 
 dummy_var_name = "$d"
 
-type LineNumber = Int
-data ParseResult a = Ok a | Failed String
-type P a           = LineNumber -> ParseResult a
+-- type Env = [String]
+-- data ParseResult a = Ok a Env | Failed String
+-- type P a           = Env -> ParseResult a
 
-thenP :: P a -> (a -> P b) -> P b
-thenP m k = \lineno ->
- case m lineno of
-    Ok a -> k a lineno
-    Failed s -> Failed s
+-- thenP :: P a -> (a -> P b) -> P b
+-- thenP m k = \env ->
+--  case m env of
+--     Ok a env1 -> k a env1
+--     Failed s -> Failed s
 
-returnP :: a -> P a
-returnP a = \lineno -> Ok a
+-- returnP :: a -> P a
+-- returnP a = \env -> Ok a env
+
+-- addP :: String -> P ()
+-- addP x = \env -> Ok () (x:env)
+
+-- indexP :: String -> P (Maybe Int)
+-- indexP x = \env -> Ok (elemIndex x env) env
+
+-- parseprog toks = parseprog_ toks []
+-- parsekind toks = parsekind_ toks []
+-- parsetype toks = parsetype_ toks []
+-- parseterm toks = parseterm_ toks []
+
+-- %monad { P } { thenP } { returnP }
 
 -- parser produced by Happy Version 1.18.10
 
@@ -533,7 +546,10 @@ happyReduction_16 ((HappyAbsSyn11  happy_var_6) `HappyStk`
 	_ `HappyStk`
 	happyRest)
 	 = HappyAbsSyn11
-		 (Lam happy_var_2 happy_var_4 happy_var_6
+		 (-- % addP happy_var_2
+                                          -- `thenP` \ () -> 
+                                          -- returnP ( Lam happy_var_2 happy_var_4 happy_var_6 )
+                                          Lam happy_var_2 happy_var_4 happy_var_6
 	) `HappyStk` happyRest
 
 happyReduce_17 = happySpecReduce_1  11 happyReduction_17
@@ -546,7 +562,13 @@ happyReduction_17 _  = notHappyAtAll
 happyReduce_18 = happySpecReduce_1  12 happyReduction_18
 happyReduction_18 (HappyTerminal (TokenVar happy_var_1))
 	 =  HappyAbsSyn12
-		 (ConstM happy_var_1
+		 (-- % indexP happy_var_1
+                                          -- `thenP` \ mayber ->
+                                          -- returnP $
+                                          -- case mayber of
+                                          --  Nothing -> ConstM happy_var_1
+                                          --  Just i  -> Var i
+                                          ConstM happy_var_1
 	)
 happyReduction_18 _  = notHappyAtAll 
 
@@ -703,32 +725,41 @@ happyNewToken action sts stk (tk:tks) =
 happyError_ 33 tk tks = happyError' tks
 happyError_ _ tk tks = happyError' (tk:tks)
 
-happyThen :: () => P a -> (a -> P b) -> P b
-happyThen = (thenP)
-happyReturn :: () => a -> P a
-happyReturn = (returnP)
-happyThen1 m k tks = (thenP) m (\a -> k a tks)
-happyReturn1 :: () => a -> b -> P a
-happyReturn1 = \a tks -> (returnP) a
-happyError' :: () => [(Token)] -> P a
-happyError' = parseError
+newtype HappyIdentity a = HappyIdentity a
+happyIdentity = HappyIdentity
+happyRunIdentity (HappyIdentity a) = a
 
-parseprog tks = happySomeParser where
+instance Monad HappyIdentity where
+    return = HappyIdentity
+    (HappyIdentity p) >>= q = q p
+
+happyThen :: () => HappyIdentity a -> (a -> HappyIdentity b) -> HappyIdentity b
+happyThen = (>>=)
+happyReturn :: () => a -> HappyIdentity a
+happyReturn = (return)
+happyThen1 m k tks = (>>=) m (\a -> k a tks)
+happyReturn1 :: () => a -> b -> HappyIdentity a
+happyReturn1 = \a tks -> (return) a
+happyError' :: () => [(Token)] -> HappyIdentity a
+happyError' = HappyIdentity . parseError
+
+parseprog tks = happyRunIdentity happySomeParser where
   happySomeParser = happyThen (happyParse action_0 tks) (\x -> case x of {HappyAbsSyn7 z -> happyReturn z; _other -> notHappyAtAll })
 
-parsekind tks = happySomeParser where
+parsekind tks = happyRunIdentity happySomeParser where
   happySomeParser = happyThen (happyParse action_1 tks) (\x -> case x of {HappyAbsSyn8 z -> happyReturn z; _other -> notHappyAtAll })
 
-parsetype tks = happySomeParser where
+parsetype tks = happyRunIdentity happySomeParser where
   happySomeParser = happyThen (happyParse action_2 tks) (\x -> case x of {HappyAbsSyn9 z -> happyReturn z; _other -> notHappyAtAll })
 
-parseterm tks = happySomeParser where
+parseterm tks = happyRunIdentity happySomeParser where
   happySomeParser = happyThen (happyParse action_3 tks) (\x -> case x of {HappyAbsSyn11 z -> happyReturn z; _other -> notHappyAtAll })
 
 happySeq = happyDontSeq
 
 
-parseError :: [Token] -> P a
+-- parseError :: [Token] -> P a
+parseError :: [Token] -> a
 parseError toks = error ("Parse error at " ++
 			 (concat 
 			  $ intersperse " " 

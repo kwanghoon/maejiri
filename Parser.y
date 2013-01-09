@@ -36,19 +36,31 @@ import AST
 
 dummy_var_name = "$d"
 
-type LineNumber = Int
-data ParseResult a = Ok a | Failed String
-type P a           = LineNumber -> ParseResult a
+-- type Env = [String]
+-- data ParseResult a = Ok a Env | Failed String
+-- type P a           = Env -> ParseResult a
 
-thenP :: P a -> (a -> P b) -> P b
-thenP m k = \lineno ->
- case m lineno of
-    Ok a -> k a lineno
-    Failed s -> Failed s
+-- thenP :: P a -> (a -> P b) -> P b
+-- thenP m k = \env ->
+--  case m env of
+--     Ok a env1 -> k a env1
+--     Failed s -> Failed s
 
-returnP :: a -> P a
-returnP a = \lineno -> Ok a
+-- returnP :: a -> P a
+-- returnP a = \env -> Ok a env
 
+-- addP :: String -> P ()
+-- addP x = \env -> Ok () (x:env)
+
+-- indexP :: String -> P (Maybe Int)
+-- indexP x = \env -> Ok (elemIndex x env) env
+
+-- parseprog toks = parseprog_ toks []
+-- parsekind toks = parsekind_ toks []
+-- parsetype toks = parsetype_ toks []
+-- parseterm toks = parseterm_ toks []
+
+-- %monad { P } { thenP } { returnP }
 
 }
 
@@ -57,7 +69,6 @@ returnP a = \lineno -> Ok a
 %partial parsetype A
 %partial parseterm M
 
-%monad { P } { thenP } { returnP }
 
 
 %tokentype { Token }
@@ -96,11 +107,22 @@ A1	: var				{ ConstA $1 }
 	| A1 var 			{ AppA $1 (ConstM $2) }
 	| A1 '(' M ')' 			{ AppA $1 $3 }
 
-M	: Lam var ':' A '.' M		{ Lam $2 $4 $6 }
+M	: Lam var ':' A '.' M		{ -- % addP $2
+                                          -- `thenP` \ () -> 
+                                          -- returnP ( Lam $2 $4 $6 )
+                                          Lam $2 $4 $6
+                                        }
 	| M1				{ $1 }
 
 
-M1	: var				{ ConstM $1 }
+M1	: var				{ -- % indexP $1
+                                          -- `thenP` \ mayber ->
+                                          -- returnP $
+                                          -- case mayber of
+                                          --  Nothing -> ConstM $1
+                                          --  Just i  -> Var i
+                                          ConstM $1
+                                        }
 	| '(' M ')'			{ $2 }
 	| M1 var			{ App $1 (ConstM $2) }
 	| M1 '(' M ')'			{ App $1 $3 }
@@ -130,7 +152,8 @@ DefDecls: var '=' M '.'			{ [HasDef  (ConstM $1) $3] }
 
 {
 
-parseError :: [Token] -> P a
+-- parseError :: [Token] -> P a
+parseError :: [Token] -> a
 parseError toks = error ("Parse error at " ++
 			 (concat 
 			  $ intersperse " " 
