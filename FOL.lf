@@ -82,3 +82,11 @@ ex2 = \F:indi->prop.\j:true (forall (\x:indi.F x)).
 ex3 = \F:indi->prop.\j:true (forall F). 
              exists_i F zero (forall_e F zero j).
 
+;; - Proof of ex1
+;;    :t ex4
+;;     true (impl (forall (\x:indi.equal x x)) (exists (\x:indi.equal x x)))
+ex4 = impl_i 
+      	     (forall (\x:indi.equal x x))
+	     (exists (\x:indi.equal x x))
+	     	     (ex3 (\x:indi. equal x x))
+
