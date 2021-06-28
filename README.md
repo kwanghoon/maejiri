@@ -1,4 +1,4 @@
-# Maejiri: LF type checker written in Haskell.
+# [Maejiri](https://goo.gl/maps/UeTVL4eyHMU6pHuF8): LF type checker written in Haskell.
 
 ### Quick Start
 ```
